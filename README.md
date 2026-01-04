@@ -49,13 +49,13 @@ embedded = api.L.d(node)
 
 Context-Fabric uses memory-mapped numpy arrays for dramatically faster loading and reduced memory consumption compared to Text-Fabric's pickle-based caching.
 
-### Benchmarks (BHSA Hebrew Bible corpus)
+### Benchmarks (BHSA Hebrew Bible corpus — 1.4M nodes, 109 features)
 
 | Metric | Text-Fabric | Context-Fabric | Improvement |
 |--------|-------------|----------------|-------------|
-| **Load Time** | 7.21s | 2.54s | **2.8x faster** |
-| **Memory Usage** | 4.9 GB | 473 MB | **90% reduction** |
-| Compile Time | 62s | 93s | 1.5x slower |
+| **Load Time** | 7.30s | 2.49s | **2.9x faster** |
+| **Memory Usage** | 4.9 GB | 167 MB | **97% reduction** |
+| Compile Time | 61s | 93s | 1.5x slower |
 | Cache Size | 138 MB | 859 MB | 6.2x larger |
 
 <p align="center">
@@ -68,10 +68,19 @@ The key insight: **compilation happens once, loading happens every session**. Co
 - **Efficient sparse iteration**: Uses numpy vectorized operations instead of Python loops
 - **Cached materialization**: Dictionary views computed once per session
 
+### Parallel Worker Scaling
+
+Memory-mapped arrays enable efficient parallel processing. Multiple workers share the same mmap'd data instead of each loading a full copy into RAM:
+
+| Workers | Text-Fabric | Context-Fabric | Savings |
+|---------|-------------|----------------|---------|
+| 4 workers | 6.9 GB total | 3.3 GB total | **52% less** |
+| Per worker | 1.7 GB | 829 MB | **2.1x less** |
+
 Run the benchmark yourself:
 
 ```bash
-python benchmarks/compare_performance.py --source path/to/tf/data
+python benchmarks/compare_performance.py --source path/to/tf/data --workers 4
 ```
 
 ## Testing
