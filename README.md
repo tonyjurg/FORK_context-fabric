@@ -15,7 +15,7 @@ Forked from Dirk Roorda's [Text-Fabric](https://github.com/annotation/text-fabri
 ## Installation
 
 ```bash
-pip install context-fabric-core
+pip install context-fabric
 ```
 
 ## Quick Start
