@@ -429,8 +429,14 @@ class Text:
         good = True
         if len(self.sectionFeats) != 0 and len(self.sectionTypes) != 0:
             for fName in self.sectionFeatsWithLanguage:
-                fObj = api.TF.features[fName]
-                meta = fObj.metaData
+                # Get metadata from api.F feature (has loaded metadata from .cfm)
+                # or fall back to TF.features (for legacy .tf loading)
+                fFeature = getattr(api.F, fName, None)
+                if fFeature is not None and hasattr(fFeature, 'meta'):
+                    meta = fFeature.meta
+                else:
+                    fObj = api.TF.features.get(fName)
+                    meta = fObj.metaData if fObj else {}
                 code = meta.get("languageCode", "")
                 self.languages[code] = {
                     k: meta.get(k, "default") for k in ("language", "languageEnglish")
@@ -441,7 +447,13 @@ class Text:
                     ((fOtype(node), name), node) for (node, name) in cData.items()
                 )
             for fName in self.sectionFeats:
-                dataType = api.TF.features[fName].dataType
+                # Get dataType from api.F feature or TF.features
+                fFeature = getattr(api.F, fName, None)
+                if fFeature is not None and hasattr(fFeature, 'meta'):
+                    dataType = fFeature.meta.get('value_type', 'str')
+                else:
+                    fObj = api.TF.features.get(fName)
+                    dataType = fObj.dataType if fObj else 'str'
                 self.sectionFeatures.append(api.Fs(fName).data)
                 self.sectionFeatureTypes.append(dataType)
 

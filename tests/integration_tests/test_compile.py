@@ -604,3 +604,172 @@ class TestCfmNodeFeatureNone:
         zeros = cfm_api.F.score.s(0)
         assert 2 in zeros  # has value 0
         assert 3 not in zeros  # has None, not 0
+
+
+class TestCfmCompileReloadCycle:
+    """Test that compile-then-reload produces consistent results.
+
+    These tests specifically verify the cycle of:
+    1. Fresh load from .tf (compiles to .cfm)
+    2. Reload from .cfm cache (simulating kernel restart)
+
+    This catches bugs like:
+    - Blank line handling in feature parsing
+    - Section lookup metadata not being loaded
+    - Feature data offset issues
+    """
+
+    @pytest.fixture
+    def fresh_and_cached_apis(self):
+        """Load corpus fresh, then simulate reload from cache."""
+        mini_corpus = Path('tests/fixtures/mini_corpus')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_dir = Path(tmpdir) / 'mini_corpus'
+            shutil.copytree(mini_corpus, test_dir)
+
+            # Remove any existing .cfm to force fresh compile
+            cfm_dir = test_dir / '.cfm'
+            if cfm_dir.exists():
+                shutil.rmtree(cfm_dir)
+
+            # Stage 1: Fresh load from .tf (compiles to .cfm)
+            TF1 = Fabric(
+                locations=[str(test_dir.parent)],
+                modules=['mini_corpus'],
+                silent='deep'
+            )
+            api_fresh = TF1.load('word pos')
+
+            # Stage 2: Simulate kernel restart by creating new Fabric
+            # This should load from .cfm cache
+            TF2 = Fabric(
+                locations=[str(test_dir.parent)],
+                modules=['mini_corpus'],
+                silent='deep'
+            )
+            api_cached = TF2.load('word pos')
+
+            yield api_fresh, api_cached
+
+    def test_otype_consistent_after_reload(self, fresh_and_cached_apis):
+        """otype values are the same after cache reload."""
+        api_fresh, api_cached = fresh_and_cached_apis
+
+        # Check all nodes
+        max_node = api_fresh.F.otype.maxNode
+        for n in range(1, max_node + 1):
+            fresh_type = api_fresh.F.otype.v(n)
+            cached_type = api_cached.F.otype.v(n)
+            assert fresh_type == cached_type, f"Node {n}: {fresh_type} != {cached_type}"
+
+    def test_word_feature_consistent_after_reload(self, fresh_and_cached_apis):
+        """String features are the same after cache reload."""
+        api_fresh, api_cached = fresh_and_cached_apis
+
+        # Check all word nodes
+        for n in api_fresh.F.otype.s('word'):
+            fresh_val = api_fresh.F.word.v(n)
+            cached_val = api_cached.F.word.v(n)
+            assert fresh_val == cached_val, f"Node {n}: {fresh_val!r} != {cached_val!r}"
+
+    def test_locality_consistent_after_reload(self, fresh_and_cached_apis):
+        """L.d() and L.u() are the same after cache reload."""
+        api_fresh, api_cached = fresh_and_cached_apis
+
+        # Check L.d() for a sentence node
+        for n in api_fresh.F.otype.s('sentence'):
+            fresh_down = api_fresh.L.d(n)
+            cached_down = api_cached.L.d(n)
+            assert fresh_down == cached_down, f"L.d({n}): {fresh_down} != {cached_down}"
+
+            fresh_words = api_fresh.L.d(n, otype='word')
+            cached_words = api_cached.L.d(n, otype='word')
+            assert fresh_words == cached_words
+
+    def test_search_consistent_after_reload(self, fresh_and_cached_apis):
+        """Search results are the same after cache reload."""
+        api_fresh, api_cached = fresh_and_cached_apis
+
+        # Simple search
+        fresh_results = set(api_fresh.S.search('word'))
+        cached_results = set(api_cached.S.search('word'))
+        assert fresh_results == cached_results
+
+
+class TestCfmSectionsCycle:
+    """Test that section features work after cache reload.
+
+    Tests specifically for the bug where sections computed feature
+    was not available after loading from .cfm cache.
+    """
+
+    @pytest.fixture
+    def fresh_and_cached_apis_with_sections(self):
+        """Load corpus with sections, fresh and cached."""
+        mini_corpus = Path('tests/fixtures/mini_corpus')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_dir = Path(tmpdir) / 'mini_corpus'
+            shutil.copytree(mini_corpus, test_dir)
+
+            cfm_dir = test_dir / '.cfm'
+            if cfm_dir.exists():
+                shutil.rmtree(cfm_dir)
+
+            # Stage 1: Fresh load
+            TF1 = Fabric(
+                locations=[str(test_dir.parent)],
+                modules=['mini_corpus'],
+                silent='deep'
+            )
+            api_fresh = TF1.load('')
+
+            # Stage 2: Cached load
+            TF2 = Fabric(
+                locations=[str(test_dir.parent)],
+                modules=['mini_corpus'],
+                silent='deep'
+            )
+            api_cached = TF2.load('')
+
+            yield api_fresh, api_cached, TF1, TF2
+
+    def test_sections_computed_exists_after_reload(self, fresh_and_cached_apis_with_sections):
+        """C.sections exists after cache reload."""
+        api_fresh, api_cached, TF1, TF2 = fresh_and_cached_apis_with_sections
+
+        if TF1.sectionsOK:
+            assert hasattr(api_fresh.C, 'sections')
+            assert hasattr(api_cached.C, 'sections')
+
+    def test_section_types_consistent(self, fresh_and_cached_apis_with_sections):
+        """sectionTypes are same after reload."""
+        api_fresh, api_cached, TF1, TF2 = fresh_and_cached_apis_with_sections
+
+        assert TF1.sectionTypes == TF2.sectionTypes
+        assert TF1.sectionFeats == TF2.sectionFeats
+
+    def test_node_from_section_consistent(self, fresh_and_cached_apis_with_sections):
+        """T.nodeFromSection returns same results after reload."""
+        api_fresh, api_cached, TF1, TF2 = fresh_and_cached_apis_with_sections
+
+        if not TF1.sectionsOK:
+            pytest.skip("Corpus has no section configuration")
+
+        # Get a section from fresh load
+        sections = api_fresh.C.sections.data
+        sec1 = sections.get('sec1', {})
+
+        # Try each section in sec1
+        for sec0_node, chapter_map in list(sec1.items())[:3]:  # Check first 3
+            for ch_heading, ch_node in list(chapter_map.items())[:2]:
+                # Build the section tuple
+                sec0_feat = TF1.sectionFeats[0]
+                sec0_name = api_fresh.F.__dict__.get(sec0_feat, None)
+                if sec0_name:
+                    sec0_val = sec0_name.v(sec0_node)
+                    if sec0_val:
+                        section = (sec0_val, ch_heading)
+                        fresh_node = api_fresh.T.nodeFromSection(section)
+                        cached_node = api_cached.T.nodeFromSection(section)
+                        assert fresh_node == cached_node, \
+                            f"Section {section}: fresh={fresh_node} cached={cached_node}"

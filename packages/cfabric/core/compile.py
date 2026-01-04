@@ -232,8 +232,10 @@ class Compiler:
         while i < len(lines):
             line = lines[i].rstrip('\n')
             i += 1
-            if not line:
-                continue
+            # NOTE: Do NOT skip blank lines here! In TF format, blank lines
+            # in the data section represent empty values and must still
+            # increment implicit_node. The original TF parser processes every
+            # line, and so must we.
 
             fields = line.split('\t')
             lfields = len(fields)
