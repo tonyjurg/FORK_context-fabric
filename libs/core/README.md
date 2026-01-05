@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/fabric_tan_mark_light.svg" alt="Context Fabric" width="120">
+  <img src="../../assets/fabric_tan_mark_light.svg" alt="Context Fabric" width="120">
 </p>
 
 <h1 align="center">Context-Fabric</h1>
@@ -59,7 +59,7 @@ Context-Fabric uses memory-mapped numpy arrays for dramatically faster loading a
 | Cache Size | 138 MB | 859 MB | 6.2x larger |
 
 <p align="center">
-  <img src="benchmarks/results/performance_comparison.png" alt="Performance Comparison" width="700">
+  <img src="../../benchmarks/results/performance_comparison.png" alt="Performance Comparison" width="700">
 </p>
 
 The key insight: **compilation happens once, loading happens every session**. Context-Fabric optimizes for the common case with:
