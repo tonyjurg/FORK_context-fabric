@@ -5,7 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2026-01-04
+## [0.2.0] - 2026-01-05 [ck]
+
+### Changed
+- **Monorepo structure**: Reorganized to `libs/core/` layout for future multi-package support
+- **Module reorganization**: Flat `core/` directory split into logical subdirectories:
+  - `core/` - Main entry points (Fabric, Api, config)
+  - `features/` - Feature classes (NodeFeature, EdgeFeature, warp features)
+  - `io/` - Data loading and compilation
+  - `storage/` - Memory-mapped storage backends (CSR, StringPool)
+  - `navigation/` - Corpus navigation (Nodes, Locality, Text)
+  - `precompute/` - Pre-computation logic
+  - `search/` - Search engine
+  - `utils/` - Utilities (helpers, files, timestamp)
+- **Renamed modules** for clarity:
+  - `parameters.py` → `config.py`
+  - `nodefeature.py` → `features/node.py`
+  - `edgefeature.py` → `features/edge.py`
+  - `data.py` → `io/loader.py`
+  - `compile.py` → `io/compiler.py`
+  - `strings.py` → `storage/string_pool.py`
+  - `generic.py` → `utils/attrs.py`
+  - `command.py` → `utils/cli.py`
+- Tests moved to `libs/core/tests/` alongside package
+
+### Added
+- `cfabric/types.py` - Type aliases for improved type safety
+- `cfabric/py.typed` - PEP 561 marker for type checker support
+- `cfabric/downloader/` - Stub for Hugging Face Hub corpus downloads
+- `corpus-distribution-plan.md` - Strategy for community corpus distribution
+- Workspace-level `pyproject.toml` with mypy configuration
+- Package-level `pyproject.toml` in `libs/core/`
+
+### Fixed
+- Updated 47 legacy `tf.core` references to `cfabric`
+
+### Testing
+- All 700 tests passing
+- Test fixtures path resolution fixed for new structure
+
+## [0.1.0] - 2026-01-04 [ck]
 
 Initial release. Forked from Dirk Roorda's [Text-Fabric](https://github.com/annotation/text-fabric)
 with a new memory-mapped storage format.
@@ -30,3 +69,7 @@ Memory-mapped architecture makes Context-Fabric well-suited for API deployment s
 - 478 unit tests covering core functionality
 - 87 integration tests for end-to-end workflows
 - Requires Python 3.13+
+
+---
+
+[ck]: https://github.com/codykingham
