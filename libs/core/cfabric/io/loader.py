@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import array
 import collections
+import logging
 import time
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -29,11 +30,12 @@ from cfabric.utils.files import (
     splitPath,
     mTime,
 )
-from cfabric.utils.timestamp import SILENT_D, silentConvert
+from cfabric.utils.logging import SILENT_D, silentConvert
 
 if TYPE_CHECKING:
     from io import TextIOWrapper
-    from cfabric.utils.timestamp import Timestamp
+
+logger = logging.getLogger(__name__)
 
 ERROR_CUTOFF = 20
 
@@ -53,21 +55,19 @@ class Data:
     def __init__(
         self,
         path: str,
-        tmObj: Timestamp,
         edgeValues: bool = False,
         data: dict[int, Any] | tuple[Any, ...] | None = None,
         isEdge: bool | None = None,
         isConfig: bool | None = None,
         metaData: dict[str, str | None] | None = None,
         method: Callable[..., Any] | None = None,
-        dependencies: list[Data | Any] | None = None,
+        dependencies: list["Data" | Any] | None = None,
     ) -> None:
         if metaData is None:
             metaData = {}
         (dirName, baseName) = splitPath(path)
         (fileName, extension) = splitExt(baseName)
         self.path: str = path
-        self.tmObj: Timestamp = tmObj
         self.dirName: str = dirName
         self.fileName: str = fileName
         self.extension: str = extension
@@ -76,7 +76,7 @@ class Data:
         self.isConfig: bool | None = isConfig
         self.metaData: dict[str, str | None] = metaData
         self.method: Callable[..., Any] | None = method
-        self.dependencies: list[Data | Any] | None = dependencies
+        self.dependencies: list["Data" | Any] | None = dependencies
         self.data: dict[int, Any] | tuple[Any, ...] | None = data
         self.dataLoaded: float | bool = False
         self.dataError: bool = False
@@ -97,17 +97,6 @@ class Data:
             Ignored, kept for API compatibility.
         """
 
-        silent = silentConvert(silent)
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        setSilent = tmObj.setSilent
-        indent = tmObj.indent
-        info = tmObj.info
-        error = tmObj.error
-
-        wasSilent = isSilent()
-        setSilent(silent)
-        indent(level=True, reset=True)
         origTime = self._getModified()
         sourceRep = (
             ", ".join(
@@ -154,16 +143,11 @@ class Data:
                 console(f"{FATAL_MSG}: {e}")
                 good = False
         if good:
-            info(
-                msgFormat.format(actionRep, self.fileName, sourceRep),
-                cache=1 if actionRep in "CT" else -1,
-            )
+            logger.info(msgFormat.format(actionRep, self.fileName, sourceRep))
         else:
             self.dataError = True
-            error(msgFormat.format(actionRep, self.fileName, sourceRep))
+            logger.error(msgFormat.format(actionRep, self.fileName, sourceRep))
 
-        setSilent(wasSilent)
-        indent(level=False)
         return good
 
     def unload(self) -> None:
@@ -176,30 +160,19 @@ class Data:
         nodeRanges: bool = False,
         silent: str | bool | None = SILENT_D,
     ) -> bool:
-        silent = silentConvert(silent)
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        setSilent = tmObj.setSilent
-
-        wasSilent = isSilent()
-        setSilent(silent)
-        result = self._writeTf(overwrite=overwrite, nodeRanges=nodeRanges)
-        setSilent(wasSilent)
-        return result
+        return self._writeTf(overwrite=overwrite, nodeRanges=nodeRanges)
 
     def _setDataType(self) -> None:
         if self.isConfig:
             return
 
-        tmObj = self.tmObj
-        error = tmObj.error
         fileName = self.fileName
 
         dataTypesStr = ", ".join(DATA_TYPES)
         if "valueType" in self.metaData:
             dataType = self.metaData["valueType"]
             if dataType not in DATA_TYPES:
-                error(
+                logger.error(
                     f"{fileName}: Unknown @valueType: {dataType}. "
                     f"Should be one of {dataTypesStr}"
                 )
@@ -207,17 +180,15 @@ class Data:
             else:
                 self.dataType = dataType
         else:
-            error(f"{fileName}: Missing @valueType. Should be one of {dataTypesStr}")
+            logger.error(f"{fileName}: Missing @valueType. Should be one of {dataTypesStr}")
             self.dataType = DATA_TYPES[0]
 
     def _readTf(self, metaOnly: bool = False) -> bool:
-        tmObj = self.tmObj
-        error = tmObj.error
         fileName = self.fileName
 
         path = self.path
         if not fileExists(path):
-            error(f'TF reading: feature file "{path}" does not exist')
+            logger.error(f'TF reading: feature file "{path}" does not exist')
             return False
         fh = fileOpen(path)
         i = 0
@@ -234,7 +205,7 @@ class Data:
                 elif text == "@config":
                     self.isConfig = True
                 else:
-                    error(f"{fileName}: Line {i}: missing @node/@edge/@config")
+                    logger.error(f"{fileName}: Line {i}: missing @node/@edge/@config")
                     fh.close()
                     return False
                 continue
@@ -248,7 +219,7 @@ class Data:
                 continue
             else:
                 if text != "":
-                    error(f"{fileName}: Line {i}: missing blank line after metadata")
+                    logger.error(f"{fileName}: Line {i}: missing blank line after metadata")
                     fh.close()
                     return False
                 else:
@@ -260,9 +231,7 @@ class Data:
         fh.close()
         return good
 
-    def _readDataTf(self, fh: TextIOWrapper, firstI: int) -> bool:
-        tmObj = self.tmObj
-        error = tmObj.error
+    def _readDataTf(self, fh: "TextIOWrapper", firstI: int) -> bool:
         fileName = self.fileName
 
         errors: dict[str, list[int]] = collections.defaultdict(list)
@@ -351,7 +320,7 @@ class Data:
                         data[n] = value
         for kind in errors:
             lnk = len(errors[kind])
-            error(
+            logger.error(
                 "{}: {} in lines {}".format(
                     fileName,
                     kind,
@@ -359,7 +328,7 @@ class Data:
                 )
             )
             if lnk > ERROR_CUTOFF:
-                error(f"\t and {lnk - ERROR_CUTOFF} more cases", tm=False)
+                logger.error(f"\t and {lnk - ERROR_CUTOFF} more cases")
 
         self.data = data
 
@@ -384,7 +353,7 @@ class Data:
                 nodeRange = maxNode - maxSlot
                 nodesMapped = len(nodeList)
                 if nodeRange > nodesMapped:
-                    error(
+                    logger.error(
                         f"ERROR: {OSLOTS} fails to map {nodeRange - nodesMapped} nodes"
                     )
                     errors = True
@@ -428,27 +397,24 @@ class Data:
         return not errors
 
     def _compute(self, metaOnly: bool = False) -> bool:
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
         if metaOnly:
             return True
 
         good = True
         for feature in self.dependencies:
             if isinstance(feature, Data):
-                if not feature.load(silent=isSilent()):
+                if not feature.load():
                     good = False
         if not good:
             return False
 
         def info(msg: str, tm: bool = True) -> None:
-            tmObj.info(cmpFormat.format(msg), tm=tm, cache=-1)
+            logger.info(cmpFormat.format(msg))
 
         def error(msg: str, tm: bool = True) -> None:
-            tmObj.error(cmpFormat.format(msg), tm=tm)
+            logger.error(cmpFormat.format(msg))
 
         cmpFormat = f"c {self.fileName:<20} {{}}"
-        tmObj.indent(level=2, reset=True)
 
         self.data = self.method(
             info,
@@ -476,12 +442,6 @@ class Data:
         metaOnly: bool = False,
         nodeRanges: bool = False,
     ) -> bool:
-        tmObj = self.tmObj
-        indent = tmObj.indent
-        info = tmObj.info
-        error = tmObj.error
-
-        indent(level=1, reset=True)
         metaOnly = metaOnly or self.isConfig
 
         dirName = dirName or self.dirName
@@ -494,14 +454,14 @@ class Data:
         if fpath == self.path:
             if fileExists(fpath):
                 if not overwrite:
-                    error(
+                    logger.error(
                         f'Feature file "{fpath}" already exists, feature will not be written'
                     )
                     return False
         try:
             fh = fileOpen(fpath, mode="w")
         except Exception:
-            error(f'Cannot write to feature file "{fpath}"')
+            logger.error(f'Cannot write to feature file "{fpath}"')
             return False
         fh.write(
             "@{}\n".format(
@@ -526,14 +486,12 @@ class Data:
         fh.close()
         msgFormat = "{:<1} {:<20} to {}"
         if good:
-            info(msgFormat.format("M" if metaOnly else "T", fileName, dirName))
+            logger.info(msgFormat.format("M" if metaOnly else "T", fileName, dirName))
         else:
-            error(msgFormat.format("M" if metaOnly else "T", fileName, dirName))
+            logger.error(msgFormat.format("M" if metaOnly else "T", fileName, dirName))
         return good
 
-    def _writeDataTf(self, fh: TextIOWrapper, nodeRanges: bool = False) -> bool:
-        tmObj = self.tmObj
-        error = tmObj.error
+    def _writeDataTf(self, fh: "TextIOWrapper", nodeRanges: bool = False) -> bool:
         fileName = self.fileName
 
         data = self.data
@@ -542,7 +500,7 @@ class Data:
             # in case it has been loaded from a binary representation
             fName = self.fileName
             if fName not in {OTYPE, OSLOTS}:
-                error(f"{fileName}: Data type tuple not suitable for non-WARP feature")
+                logger.error(f"{fileName}: Data type tuple not suitable for non-WARP feature")
                 return False
             maxSlot = data[2] if fName == OTYPE else data[1]
             slotType = data[1] if fName == OTYPE else None

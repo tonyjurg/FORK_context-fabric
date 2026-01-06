@@ -357,13 +357,18 @@ features to furnish a decent representation.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
+
+import numpy as np
 
 from cfabric.core.config import OTEXT
 
 if TYPE_CHECKING:
     from cfabric.core.api import Api
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_FORMAT = "text-orig-full"
 DEFAULT_FORMAT_TYPE = "{}-default"
@@ -696,29 +701,24 @@ class Text:
         of the `T` API.
         """
 
-        api = self.api
-        TF = api.TF
-        info = TF.info
-        error = TF.error
         hdMult = self.hdMult
         hdFromNd = self.hdFromNd
         headings = self.headings
 
         if hdFromNd is None:
-            info("No structural elements configured", tm=False)
+            logger.info("No structural elements configured")
             return
-        info("A heading is a tuple of pairs (node type, feature value)", tm=False)
-        info(
-            "\tof node types and features that have been configured as structural elements",
-            tm=False,
+        logger.info("A heading is a tuple of pairs (node type, feature value)")
+        logger.info(
+            "\tof node types and features that have been configured as structural elements"
         )
-        info(
-            f"These {len(headings)} structural elements have been configured", tm=False
+        logger.info(
+            f"These {len(headings)} structural elements have been configured"
         )
         for tp, ft in headings:
-            info(f"\tnode type {tp:<10} with heading feature {ft}", tm=False)
-        info("You can get them as a tuple with T.headings.", tm=False)
-        info(
+            logger.info(f"\tnode type {tp:<10} with heading feature {ft}")
+        logger.info("You can get them as a tuple with T.headings.")
+        logger.info(
             f"""
 Structure API:
 \tT.structure(node=None)       gives the structure below node, or everything if node is None
@@ -733,26 +733,24 @@ Structure API:
 \tT.hdMult are all headings    with their nodes that occur multiple times
 
 There are {len(hdFromNd)} structural elements in the dataset.
-""",
-            tm=False,
+"""
         )
 
         if hdMult:
             nMultiple = len(hdMult)
             tMultiple = sum(len(x) for x in hdMult.values())
-            error(
-                f"WARNING: {nMultiple} structure headings with hdMult occurrences (total {tMultiple})",
-                tm=False,
+            logger.error(
+                f"WARNING: {nMultiple} structure headings with hdMult occurrences (total {tMultiple})"
             )
             for sKey, nodes in sorted(hdMult.items())[0:10]:
                 sKeyRep = "-".join(":".join(str(p) for p in part) for part in sKey)
                 nNodes = len(nodes)
-                error(f"\t{sKeyRep} has {nNodes} occurrences", tm=False)
-                error(f"\t\t{', '.join(str(n) for n in nodes[0:5])}", tm=False)
+                logger.error(f"\t{sKeyRep} has {nNodes} occurrences")
+                logger.error(f"\t\t{', '.join(str(n) for n in nodes[0:5])}")
                 if nNodes > 5:
-                    error(f"\t\tand {nNodes - 5} more", tm=False)
+                    logger.error(f"\t\tand {nNodes - 5} more")
             if nMultiple > 10:
-                error(f"\tand {nMultiple - 10} headings more")
+                logger.error(f"\tand {nMultiple - 10} headings more")
 
     def structure(self, node: int | None = None) -> tuple[Any, ...] | None:
         """Gives the structure of node and everything below it as a tuple.
@@ -770,23 +768,20 @@ There are {len(hdFromNd)} structural elements in the dataset.
         """
 
         api = self.api
-        TF = api.TF
-        error = TF.error
         F = api.F
         fOtype = F.otype.v
         hdTop = self.hdTop
 
         if hdTop is None:
-            error("structure types are not configured", tm=False)
+            logger.error("structure types are not configured")
             return None
         if node is None:
             return tuple(self.structure(node=t) for t in self.top())
 
         nType = fOtype(node)
         if nType not in self.structureTypeSet:
-            error(
-                f"{node} is an {nType} which is not configured as a structure type",
-                tm=False,
+            logger.error(
+                f"{node} is an {nType} which is not configured as a structure type"
             )
             return None
 
@@ -838,13 +833,10 @@ There are {len(hdFromNd)} structural elements in the dataset.
         or a higher level.
         """
 
-        api = self.api
-        TF = api.TF
-        error = TF.error
         hdTop = self.hdTop
 
         if hdTop is None:
-            error("structure types are not configured", tm=False)
+            logger.error("structure types are not configured")
             return None
         return hdTop
 
@@ -871,19 +863,16 @@ There are {len(hdFromNd)} structural elements in the dataset.
 
         api = self.api
         F = api.F
-        TF = api.TF
-        error = TF.error
         fOtype = F.otype.v
 
         hdUp = self.hdUp
         if hdUp is None:
-            error("structure types are not configured", tm=False)
+            logger.error("structure types are not configured")
             return None
         nType = fOtype(n)
         if nType not in self.structureTypeSet:
-            error(
-                f"{n} is an {nType} which is not configured as a structure type",
-                tm=False,
+            logger.error(
+                f"{n} is an {nType} which is not configured as a structure type"
             )
             return None
         return hdUp.get(n, None)
@@ -912,17 +901,14 @@ There are {len(hdFromNd)} structural elements in the dataset.
         api = self.api
         F = api.F
         fOtype = F.otype.v
-        TF = api.TF
-        error = TF.error
         hdDown = self.hdDown
         if hdDown is None:
-            error("structure types are not configured", tm=False)
+            logger.error("structure types are not configured")
             return None
         nType = fOtype(n)
         if nType not in self.structureTypeSet:
-            error(
-                f"{n} is an {nType} which is not configured as a structure type",
-                tm=False,
+            logger.error(
+                f"{n} is an {nType} which is not configured as a structure type"
             )
             return None
         return hdDown.get(n, ())
@@ -954,18 +940,15 @@ There are {len(hdFromNd)} structural elements in the dataset.
 
         api = self.api
         F = api.F
-        TF = api.TF
-        error = TF.error
         fOtype = F.otype.v
         hdFromNd = self.hdFromNd
         if hdFromNd is None:
-            error("structure types are not configured", tm=False)
+            logger.error("structure types are not configured")
             return None
         nType = fOtype(n)
         if nType not in self.structureTypeSet:
-            error(
-                f"{n} is an {nType} which is not configured as a structure type",
-                tm=False,
+            logger.error(
+                f"{n} is an {nType} which is not configured as a structure type"
             )
             return None
         return hdFromNd.get(n, None)
@@ -992,15 +975,12 @@ There are {len(hdFromNd)} structural elements in the dataset.
             the dictionary `ndFromHd`.
         """
 
-        api = self.api
-        TF = api.TF
-        error = TF.error
         ndFromHd = self.ndFromHd
         if ndFromHd is None:
-            error("structure types are not configured", tm=False)
+            logger.error("structure types are not configured")
         n = ndFromHd.get(head, None)
         if n is None:
-            error(f"no structure node with heading {head}", tm=False)
+            logger.error(f"no structure node with heading {head}")
         return n
 
     def text(
@@ -1076,8 +1056,6 @@ There are {len(hdFromNd)} structural elements in the dataset.
         E = api.E
         F = api.F
         L = api.L
-        TF = api.TF
-        error = TF.error
 
         fOtype = F.otype.v
         slotType = F.otype.slotType
@@ -1089,13 +1067,13 @@ There are {len(hdFromNd)} structural elements in the dataset.
         xdTypes = self._xdTypes
 
         if fmt and fmt not in xformats:
-            error(f'Undefined format "{fmt}"', tm=False)
+            logger.error(f'Undefined format "{fmt}"')
             return ""
 
         def rescue(n: int, **kwargs: Any) -> str:
             return f"{fOtype(n)}{n}"
 
-        single = type(nodes) is int
+        single = isinstance(nodes, (int, np.integer))
         material: list[str] = []
         good = True
 
@@ -1113,21 +1091,20 @@ There are {len(hdFromNd)} structural elements in the dataset.
                 "implicit" if descend is None else "True" if descend else "False"
             )
             funcRep = f"{'' if func else 'no '}custom format implementation"
-            error(
+            logger.error(
                 f"""
 EXPLANATION: T.text() called with parameters:
 \tnodes  : {nRep}
 \tfmt    : {fmtRep}
 \tdescend: {descendRep}
 \tfunc   : {funcRep}
-""",
-                tm=False,
+"""
             )
 
         for node in nodes:
             nType = fOtype(node)
             if explain:
-                error(f"\tNODE: {nType} {node}", tm=False)
+                logger.error(f"\tNODE: {nType} {node}")
             if descend:
                 if explain:
                     downRep = fmttStr
@@ -1184,7 +1161,7 @@ EXPLANATION: T.text() called with parameters:
                 downType = None
 
             if explain:
-                error(f"\t\tTARGET LEVEL: {expandRep.format(expandRep2)}", tm=False)
+                logger.error(f"\t\tTARGET LEVEL: {expandRep.format(expandRep2)}")
 
             if explain:
                 plural = "s"
@@ -1198,7 +1175,7 @@ EXPLANATION: T.text() called with parameters:
                     plural = ""
             if explain:
                 nodeRep = f"{len(xnodes)} {downType or nType}{plural} {', '.join(str(x) for x in xnodes)}"
-                error(f"\t\tEXPANSION: {nodeRep}", tm=False)
+                logger.error(f"\t\tEXPANSION: {nodeRep}")
 
             if func:
                 repf = func
@@ -1211,16 +1188,16 @@ EXPLANATION: T.text() called with parameters:
                     fmtRep += "\n\t\t\twhich is not defined: formatting as node types and numbers"
 
             if explain:
-                error(f"\t\tFORMATTING: {fmtRep}", tm=False)
-                error("\t\tMATERIAL:", tm=False)
+                logger.error(f"\t\tFORMATTING: {fmtRep}")
+                logger.error("\t\tMATERIAL:")
             for n in xnodes:
                 rep = repf(n, **kwargs)
                 material.append(rep)
                 if explain:
-                    error(f'\t\t\t{fOtype(n)} {n} ADDS "{rep}"', tm=False)
+                    logger.error(f'\t\t\t{fOtype(n)} {n} ADDS "{rep}"')
 
         if not good:
-            error('Text format "{DEFAULT_FORMAT}" not defined in otext.tf', tm=False)
+            logger.error('Text format "{DEFAULT_FORMAT}" not defined in otext.tf')
         return "".join(material)
 
     def _sec0Name(self, n: int, lang: str = "en") -> str:
@@ -1303,25 +1280,36 @@ EXPLANATION: T.text() called with parameters:
         if len(feat) == 1:
             ft = feat[0]
             fObj = Fs(ft)
-            f = fObj.data if fObj else {}
-            return lambda n: f.get(n, default)
+            if not fObj:
+                return lambda n: default
+            # Use v() which works correctly for mmap backends
+            return lambda n, _fObj=fObj, _default=default: _fObj.v(n) or _default
         elif len(feat) == 2:
             (ft1, ft2) = feat
             f1Obj = Fs(ft1)
             f2Obj = Fs(ft2)
-            f1 = f1Obj.data if f1Obj else {}
-            f2 = f2Obj.data if f2Obj else {}
-            return lambda n: (f1.get(n, f2.get(n, default)))
+            if not f1Obj and not f2Obj:
+                return lambda n: default
+            # Use v() for each feature
+
+            def _getVal2(n: int, _f1: Any = f1Obj, _f2: Any = f2Obj, _default: str = default) -> str:
+                v = _f1.v(n) if _f1 else None
+                if v is not None:
+                    return v
+                v = _f2.v(n) if _f2 else None
+                return v if v is not None else _default
+
+            return _getVal2
         else:
+            # For chains of 3+ features
 
             def _getVal(n: int) -> str:
-                v = None
                 for ft in feat:
                     fObj = Fs(ft)
-                    f = fObj.data if fObj else {}
-                    v = f.get(n, None)
-                    if v is not None:
-                        break
-                return v or default
+                    if fObj:
+                        v = fObj.v(n)
+                        if v is not None:
+                            return v
+                return default
 
             return _getVal

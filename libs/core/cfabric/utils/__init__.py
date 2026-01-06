@@ -24,7 +24,7 @@ from cfabric.utils.files import (
     splitExt,
     scanDir,
 )
-from cfabric.utils.timestamp import Timestamp, SILENT_D, DEEP, silentConvert
+from cfabric.utils.logging import SILENT_D, DEEP, silentConvert, configure_logging
 from cfabric.utils.attrs import AttrDict, deepdict
 from cfabric.utils.cli import readArgs
 
@@ -48,11 +48,11 @@ __all__ = [
     "normpath",
     "splitExt",
     "scanDir",
-    # timestamp
-    "Timestamp",
+    # logging
     "SILENT_D",
     "DEEP",
     "silentConvert",
+    "configure_logging",
     # attrs
     "AttrDict",
     "deepdict",

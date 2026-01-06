@@ -4,11 +4,14 @@
 
 from __future__ import annotations
 
+import logging
 from itertools import chain
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from cfabric.search.searchexe import SearchExe
+
+logger = logging.getLogger(__name__)
 
 # INSPECTING WITH THE SEARCH GRAPH ###
 
@@ -39,10 +42,8 @@ BOUNDED: set[str] = {
 
 
 def connectedness(searchExe: SearchExe) -> None:
-    error = searchExe.api.TF.error
     qnodes = searchExe.qnodes
     qedges = searchExe.qedges
-    _msgCache = searchExe._msgCache
 
     componentIndex = dict(((q, {q}) for q in range(len(qnodes))))
     for f, rela, t in qedges:
@@ -65,17 +66,14 @@ def connectedness(searchExe: SearchExe) -> None:
         searchExe.components.append([sorted(c), componentEdges.get(c, [])])
     lComps = len(searchExe.components)
     if lComps == 0:
-        error("Search without instructions. Tell me what to look for.", cache=_msgCache)
+        logger.error("Search without instructions. Tell me what to look for.")
         searchExe.good = False
     elif lComps > 1:
-        error(
-            f"More than one connected components ({len(searchExe.components)}):",
-            cache=_msgCache,
+        logger.error(
+            f"More than one connected components ({len(searchExe.components)}):"
         )
-        error(
-            "Either run the subqueries one by one, or connect the components by a relation",
-            tm=False,
-            cache=_msgCache,
+        logger.error(
+            "Either run the subqueries one by one, or connect the components by a relation"
         )
         searchExe.good = False
 
@@ -83,9 +81,6 @@ def connectedness(searchExe: SearchExe) -> None:
 def multiEdges(searchExe: SearchExe) -> None:
     relations = searchExe.relations
     qedges = searchExe.qedges
-    _msgCache = searchExe._msgCache
-    api = searchExe.api
-    error = api.TF.error
 
     medgesIndex = {}
     # will be a dict keyed by edge destination, then by upper / lower bound
@@ -108,11 +103,7 @@ def multiEdges(searchExe: SearchExe) -> None:
             if len(ts) != 1:
                 # if this happens, it is a fault in the business logic, not caused by the user
                 eRep = " | ".join(str(qedges[e]) for (e, dir) in es)
-                error(
-                    f"Multi-edge with {len(ts)} destinations: {eRep}",
-                    tm=False,
-                    cache=_msgCache,
-                )
+                logger.error(f"Multi-edge with {len(ts)} destinations: {eRep}")
             medges.append(es)
 
     # so medges is a collection sets of edges
@@ -123,41 +114,21 @@ def multiEdges(searchExe: SearchExe) -> None:
 def displayPlan(searchExe: SearchExe, details: bool = False) -> None:
     if not searchExe.good:
         return
-    api = searchExe.api
-    TF = api.TF
-    setSilent = TF.setSilent
-    isSilent = TF.isSilent
-    info = TF.info
-    wasSilent = isSilent()
-    setSilent(False)
-    _msgCache = searchExe._msgCache
     nodeLine = searchExe.nodeLine
     qedges = searchExe.qedges
     (qs, es) = searchExe.stitchPlan
     offset = searchExe.offset
 
     if details:
-        info(
-            f"Search with {len(qs)} objects and {len(es)} relations",
-            tm=False,
-            cache=_msgCache,
-        )
-        info(
-            "Results are instantiations of the following objects:",
-            tm=False,
-            cache=_msgCache,
-        )
+        logger.info(f"Search with {len(qs)} objects and {len(es)} relations")
+        logger.info("Results are instantiations of the following objects:")
         for q in qs:
             displayNode(searchExe, q)
         if len(es) != 0:
-            info("Performance parameters:", tm=False, cache=_msgCache)
+            logger.info("Performance parameters:")
             for k, v in searchExe.perfParams.items():
-                info(f"\t{k:<20} = {v:>7}", tm=False, cache=_msgCache)
-            info(
-                "Instantiations are computed along the following relations:",
-                tm=False,
-                cache=_msgCache,
-            )
+                logger.info(f"\t{k:<20} = {v:>7}")
+            logger.info("Instantiations are computed along the following relations:")
             (firstE, firstDir) = es[0]
             (f, rela, t) = qedges[firstE]
             if firstDir == -1:
@@ -167,10 +138,7 @@ def displayPlan(searchExe: SearchExe, details: bool = False) -> None:
             nodesSeen = {f}
             for e in es:
                 nodesSeen |= displayEdge(searchExe, *e, nodesSeen)
-    info(
-        "The results are connected to the original search template as follows:",
-        cache=_msgCache,
-    )
+    logger.info("The results are connected to the original search template as follows:")
 
     resultNode = {}
     for q in qs:
@@ -178,14 +146,10 @@ def displayPlan(searchExe: SearchExe, details: bool = False) -> None:
     for i, line in enumerate(searchExe.searchLines):
         rNode = resultNode.get(i, "")
         prefix = "" if rNode == "" else "R"
-        info(f"{i + offset:>2} {prefix:<1}{rNode:<2} {line}", tm=False, cache=_msgCache)
-
-    setSilent(wasSilent)
+        logger.info(f"{i + offset:>2} {prefix:<1}{rNode:<2} {line}")
 
 
 def displayNode(searchExe: SearchExe, q: int, pos2: bool = False) -> None:
-    info = searchExe.api.TF.info
-    _msgCache = searchExe._msgCache
     qnodes = searchExe.qnodes
     yarns = searchExe.yarns
     space = " " * 31
@@ -204,7 +168,7 @@ def displayNode(searchExe: SearchExe, q: int, pos2: bool = False) -> None:
             len(yarns[q]),
         )
     )
-    info(nodeInfo, tm=False, cache=_msgCache)
+    logger.info(nodeInfo)
 
 
 def displayEdge(
@@ -213,8 +177,6 @@ def displayEdge(
     dir: int,
     nodesSeen: set[int],
 ) -> set[int]:
-    info = searchExe.api.TF.info
-    _msgCache = searchExe._msgCache
     qnodes = searchExe.qnodes
     qedges = searchExe.qedges
     converse = searchExe.converse
@@ -240,7 +202,7 @@ def displayEdge(
         if seen
         else f"{spreads.get(e, -1) if dir == 1 else spreadsC.get(e, -1):8.1f}"
     )
-    info(
+    logger.info(
         "edge {:>8}-{:<13} {:^8} {:>2}-{:<13} {} choices{}".format(
             ",".join(str(x) for x in f),
             ",".join({qnodes[x][0] for x in f}),
@@ -249,8 +211,6 @@ def displayEdge(
             ",".join(qnodes[x][0] for x in set(t)),
             spread,
             thinRep,
-        ),
-        tm=False,
-        cache=_msgCache,
+        )
     )
     return nodesInvolved

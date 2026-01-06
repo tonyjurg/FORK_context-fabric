@@ -34,7 +34,7 @@ class TestSearchInit:
     def test_search_silent_mode(self):
         """Search should accept silent parameter."""
         from cfabric.search.search import Search
-        from cfabric.utils.timestamp import SILENT_D
+        from cfabric.utils.logging import SILENT_D
 
         mock_api = MagicMock()
         s = Search(mock_api, silent=SILENT_D)
@@ -49,16 +49,12 @@ class TestTweakPerformance:
         from cfabric.search.search import Search
 
         mock_api = MagicMock()
-        mock_api.TF = MagicMock()
-        mock_api.TF.isSilent.return_value = False
-        mock_api.TF.setSilent = MagicMock()
-        mock_api.TF.error = MagicMock()
-        mock_api.TF.info = MagicMock()
 
         s = Search(mock_api)
-        s.tweakPerformance(invalidParam=100)
 
-        mock_api.TF.error.assert_called()
+        with patch("cfabric.search.search.logger") as mock_logger:
+            s.tweakPerformance(invalidParam=100)
+            mock_logger.error.assert_called()
 
     def test_reset_to_default(self):
         """Passing None should reset parameter to default."""
@@ -66,11 +62,6 @@ class TestTweakPerformance:
         from cfabric.search.searchexe import SearchExe
 
         mock_api = MagicMock()
-        mock_api.TF = MagicMock()
-        mock_api.TF.isSilent.return_value = False
-        mock_api.TF.setSilent = MagicMock()
-        mock_api.TF.error = MagicMock()
-        mock_api.TF.info = MagicMock()
 
         s = Search(mock_api)
         # Set a non-default value first
@@ -153,15 +144,13 @@ class TestFetchMethod:
         from cfabric.search.search import Search
 
         mock_api = MagicMock()
-        mock_api.TF = MagicMock()
-        mock_api.TF.error = MagicMock()
 
         s = Search(mock_api)
         s.exe = None
 
-        s.fetch()
-
-        mock_api.TF.error.assert_called_once()
+        with patch("cfabric.search.search.logger") as mock_logger:
+            s.fetch()
+            mock_logger.error.assert_called_once()
 
     def test_fetch_with_exe_calls_fetch(self):
         """fetch() should call exe.fetch() when exe exists."""
@@ -188,15 +177,13 @@ class TestCountMethod:
         from cfabric.search.search import Search
 
         mock_api = MagicMock()
-        mock_api.TF = MagicMock()
-        mock_api.TF.error = MagicMock()
 
         s = Search(mock_api)
         s.exe = None
 
-        s.count()
-
-        mock_api.TF.error.assert_called_once()
+        with patch("cfabric.search.search.logger") as mock_logger:
+            s.count()
+            mock_logger.error.assert_called_once()
 
     def test_count_with_exe_calls_count(self):
         """count() should call exe.count() when exe exists."""
@@ -222,15 +209,13 @@ class TestShowPlanMethod:
         from cfabric.search.search import Search
 
         mock_api = MagicMock()
-        mock_api.TF = MagicMock()
-        mock_api.TF.error = MagicMock()
 
         s = Search(mock_api)
         s.exe = None
 
-        s.showPlan()
-
-        mock_api.TF.error.assert_called_once()
+        with patch("cfabric.search.search.logger") as mock_logger:
+            s.showPlan()
+            mock_logger.error.assert_called_once()
 
     def test_showplan_with_exe_calls_showplan(self):
         """showPlan() should call exe.showPlan() when exe exists."""

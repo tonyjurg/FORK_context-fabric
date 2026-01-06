@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 import types
 from itertools import chain
 from inspect import signature
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
 from cfabric.search.spin import estimateSpreads
 from cfabric.search.graph import multiEdges
+
+logger = logging.getLogger(__name__)
 
 # STITCHING: STRATEGIES ###
 
@@ -31,25 +34,21 @@ def setStrategy(
     strategy: str | None,
     keep: bool = False,
 ) -> None:
-    error = searchExe.api.TF.error
-    _msgCache = searchExe._msgCache
     if strategy is None:
         if keep:
             return
         strategy = STRATEGY[0]
     if strategy not in STRATEGY:
-        error(f'Strategy not defined: "{strategy}"', cache=_msgCache)
-        error(
-            "Allowed strategies:\n{}".format("\n".join(f"    {s}" for s in STRATEGY)),
-            tm=False,
-            cache=_msgCache,
+        logger.error(f'Strategy not defined: "{strategy}"')
+        logger.error(
+            "Allowed strategies:\n{}".format("\n".join(f"    {s}" for s in STRATEGY))
         )
         searchExe.good = False
 
     func = globals().get(f"_{strategy}", None)
     if not func:
-        error(
-            f'Strategy is defined, but not implemented: "{strategy}"', cache=_msgCache
+        logger.error(
+            f'Strategy is defined, but not implemented: "{strategy}"'
         )
         searchExe.good = False
     searchExe.strategy = types.MethodType(func, searchExe)
@@ -511,8 +510,6 @@ def stitch(searchExe: SearchExe) -> None:
 def _stitchPlan(searchExe: SearchExe, strategy: str | None = None) -> None:
     qnodes = searchExe.qnodes
     qedges = searchExe.qedges
-    error = searchExe.api.TF.error
-    _msgCache = searchExe._msgCache
 
     setStrategy(searchExe, strategy, keep=True)
     if not searchExe.good:
@@ -547,24 +544,20 @@ def _stitchPlan(searchExe: SearchExe, strategy: str | None = None) -> None:
     qnodesO = tuple(range(len(qnodes)))
     newNodesO = tuple(sorted(newNodes))
     if newNodesO != qnodesO:
-        error(
+        logger.error(
             f"""Object mismatch in plan:
 In template: {qnodesO}
-In plan    : {newNodesO}""",
-            tm=False,
-            cache=_msgCache,
+In plan    : {newNodesO}"""
         )
         good = False
 
     qedgesO = tuple(range(len(qedges)))
     newCedgesO = tuple(sorted(chain(newCedges, removedEdges)))
     if newCedgesO != qedgesO:
-        error(
+        logger.error(
             f"""Relation mismatch in plan:
 In template: {qedgesO}
-In plan    : {newCedgesO}""",
-            tm=False,
-            cache=_msgCache,
+In plan    : {newCedgesO}"""
         )
         # good = False
 

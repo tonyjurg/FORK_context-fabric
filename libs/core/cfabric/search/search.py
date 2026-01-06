@@ -9,9 +9,13 @@ from typing import TYPE_CHECKING, Any, Generator
 if TYPE_CHECKING:
     from cfabric.core.api import Api
 
+import logging
+
 from cfabric.utils.helpers import console, wrapMessages
 from cfabric.search.searchexe import SearchExe
-from cfabric.utils.timestamp import SILENT_D, AUTO, silentConvert
+from cfabric.utils.logging import SILENT_D, AUTO, silentConvert
+
+logger = logging.getLogger(__name__)
 
 
 class Search:
@@ -135,35 +139,24 @@ class Search:
             See `tryLimitFrom`
         """
 
-        silent = silentConvert(silent)
-        api = self.api
-        TF = api.TF
-        error = TF.error
-        info = TF.info
-        isSilent = TF.isSilent
-        setSilent = TF.setSilent
         defaults = SearchExe.perfDefaults
 
-        wasSilent = isSilent()
-        setSilent(silent)
         for k, v in kwargs.items():
             if k not in defaults:
-                error(f'No such performance parameter: "{k}"', tm=False)
+                logger.error(f'No such performance parameter: "{k}"')
                 continue
             if v is None:
                 v = defaults[k]
             elif type(v) is not int and k != "yarnRatio":
-                error(
-                    f'Performance parameter "{k}" must be set to an integer, not to "{v}"',
-                    tm=False,
+                logger.error(
+                    f'Performance parameter "{k}" must be set to an integer, not to "{v}"'
                 )
                 continue
             self.perfParams[k] = v
-        info("Performance parameters, current values:", tm=False)
+        logger.info("Performance parameters, current values:")
         for k, v in sorted(self.perfParams.items()):
-            info(f"\t{k:<20} = {v:>7}", tm=False)
+            logger.info(f"\t{k:<20} = {v:>7}")
         SearchExe.setPerfParams(self.perfParams)
-        setSilent(wasSilent)
 
     def search(
         self,
@@ -399,16 +392,13 @@ class Search:
         """
 
         exe = self.exe
-        TF = self.api.TF
 
         if exe is None:
-            error = TF.error
-            error('Cannot fetch if there is no previous "study()"')
+            logger.error('Cannot fetch if there is no previous "study()"')
         else:
             queryResults = exe.fetch(limit=limit)
             if type(_msgCache) is list:
-                messages = TF.cache(_asString=True)
-                return (queryResults, messages)
+                return (queryResults, "")  # No more message caching
             return queryResults
 
     def count(self, progress: int | None = None, limit: int | None = None) -> None:
@@ -450,8 +440,7 @@ class Search:
 
         exe = self.exe
         if exe is None:
-            error = self.api.TF.error
-            error('Cannot count if there is no previous "study()"')
+            logger.error('Cannot count if there is no previous "study()"')
         else:
             exe.count(progress=progress, limit=limit)
 
@@ -476,8 +465,7 @@ class Search:
 
         exe = self.exe
         if exe is None:
-            error = self.api.TF.error
-            error('Cannot show plan if there is no previous "study()"')
+            logger.error('Cannot show plan if there is no previous "study()"')
         else:
             exe.showPlan(details=details)
 
@@ -523,7 +511,7 @@ class Search:
             This
 
                 for result in S.fetch(limit=10):
-                    TF.info(S.glean(result))
+                    print(S.glean(result))
 
             is a handy way to get an impression of the first bunch of results.
 

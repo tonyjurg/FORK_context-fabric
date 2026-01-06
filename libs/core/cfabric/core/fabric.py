@@ -10,6 +10,7 @@ This module defines `Fabric`, which provides:
 """
 
 import collections
+import logging
 from itertools import chain
 from collections.abc import Iterable
 
@@ -36,7 +37,7 @@ from cfabric.utils.files import (
     splitExt,
     scanDir,
 )
-from cfabric.utils.timestamp import Timestamp, SILENT_D, silentConvert
+from cfabric.utils.logging import SILENT_D, silentConvert, configure_logging, set_logging_level
 from cfabric.precompute.prepare import (
     levels,
     order,
@@ -72,6 +73,8 @@ from cfabric.core.api import (
     addText,
     addSearch,
 )
+
+logger = logging.getLogger(__name__)
 
 # Type aliases for feature data structures
 FeatureValue = str | int
@@ -188,8 +191,8 @@ class Fabric:
         So if you leave it out, TF will just search the paths specified
         in `locations`.
 
-    silent: string, optional cfabric.timestamp.SILENT_D
-        See `cfabric.timestamp.Timestamp`
+    silent: string, optional "auto"
+        Verbosity level: "verbose", "auto", "terse", or "deep"
 
     _withGc: boolean, optional False
         If False, it disables the Python garbage collector before
@@ -219,10 +222,10 @@ class Fabric:
         silent = silentConvert(silent)
         self._withGc = _withGc
         self.silent = silent
-        tmObj = Timestamp(silent=silent)
-        self.tmObj = tmObj
-        setSilent = tmObj.setSilent
-        setSilent(silent)
+
+        # Configure logging
+        configure_logging(silent)
+
         self.banner = BANNER
         """The banner Text-Fabric.
 
@@ -234,15 +237,12 @@ class Fabric:
         """
 
         (on32, warn, msg) = check32()
-        warning = tmObj.warning
-        info = tmObj.info
-        debug = tmObj.debug
 
         if on32:
-            warning(warn, tm=False)
+            logger.warning(warn)
         if msg:
-            info(msg, tm=False)
-        debug(self.banner, tm=False)
+            logger.info(msg)
+        logger.debug(self.banner)
         self.good = True
 
         if modules is None:
@@ -317,8 +317,8 @@ class Fabric:
             by the current API.
             Meant to be able to dynamically load features without reloading lots
             of features for nothing.
-        silent: string, optional cfabric.timestamp.SILENT_D
-            See `cfabric.timestamp.Timestamp`
+        silent: string, optional "auto"
+            Verbosity level: "verbose", "auto", "terse", or "deep"
 
         Returns
         -------
@@ -329,27 +329,14 @@ class Fabric:
         """
 
         silent = silentConvert(silent)
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        setSilent = tmObj.setSilent
-        indent = tmObj.indent
-        debug = tmObj.debug
-        info = tmObj.info
-        warning = tmObj.warning
-        error = tmObj.error
-        cache = tmObj.cache
-        reset = tmObj.reset
+        set_logging_level(silent)
         featuresOnly = self.featuresOnly
-
-        wasSilent = isSilent()
-        setSilent(silent)
-        indent(level=0, reset=True)
 
         # Try to load from .cfm format first (if not adding to existing API)
         if not add:
             cfm_path = self._detect_cfm()
             if cfm_path is not None:
-                info(f"Loading from {cfm_path}")
+                logger.info(f"Loading from {cfm_path}")
                 try:
                     mmap_mgr = MmapManager(cfm_path)
                     api = self._makeApiFromCfm(mmap_mgr)
@@ -357,12 +344,10 @@ class Fabric:
                         self.api = api
                         self._loaded_from_cfm = True
                         setattr(self, "isLoaded", self.api.isLoaded)
-                        indent(level=0)
-                        info("All features loaded from .cfm format")
-                        setSilent(wasSilent)
+                        logger.info("All features loaded from .cfm format")
                         return api
                 except Exception as e:
-                    debug(f".cfm load failed, falling back to .tf: {e}")
+                    logger.debug(f".cfm load failed, falling back to .tf: {e}")
 
         self.sectionsOK = True
         self.structureOK = True
@@ -398,7 +383,7 @@ class Fabric:
                     0 < len(self.sectionFeats) <= 3
                 ):
                     if not add:
-                        warning(
+                        logger.warning(
                             f"Dataset without sections in {OTEXT}:"
                             f"no section functions in the T-API"
                         )
@@ -414,7 +399,7 @@ class Fabric:
                     self.textFeatures |= set(self.sectionFeatsWithLanguage)
                 if not self.structureTypes or not self.structureFeats:
                     if not add:
-                        debug(
+                        logger.debug(
                             f"Dataset without structure sections in {OTEXT}:"
                             f"no structure functions in the T-API"
                         )
@@ -453,16 +438,12 @@ class Fabric:
             self._precompute()
 
         if self.good:
-            reset()
             for fName in self.featuresRequested:
                 self._loadFeature(fName)
                 if not self.good:
-                    indent(level=0)
-                    cache()
-                    error("Not all features could be loaded / computed")
+                    logger.error("Not all features could be loaded / computed")
                     result = False
                     break
-                reset()
 
         if self.good:
             if add:
@@ -484,7 +465,6 @@ class Fabric:
         else:
             result = False
 
-        setSilent(wasSilent)
         return result
 
     def explore(
@@ -494,8 +474,8 @@ class Fabric:
 
         Parameters
         ----------
-        silent: string, optional cfabric.timestamp.SILENT_D
-            See `cfabric.timestamp.Timestamp`
+        silent: string, optional "auto"
+            Verbosity level: "verbose", "auto", "terse", or "deep"
         show: boolean, optional True
             If `False`, the resulting dictionary is delivered in `TF.featureSets`;
             if `True`, the dictionary is returned as function result.
@@ -522,13 +502,8 @@ class Fabric:
         """
 
         silent = silentConvert(silent)
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        setSilent = tmObj.setSilent
-        info = tmObj.info
+        set_logging_level(silent)
 
-        wasSilent = isSilent()
-        setSilent(silent)
         nodes: set[str] = set()
         edges: set[str] = set()
         configs: set[str] = set()
@@ -546,7 +521,7 @@ class Fabric:
             else:
                 dest = nodes
             dest.add(fName)
-        info(
+        logger.info(
             "Feature overview: {} for nodes; {} for edges; {} configs; {} computed".format(
                 len(nodes),
                 len(edges),
@@ -557,7 +532,6 @@ class Fabric:
         self.featureSets = dict(
             nodes=nodes, edges=edges, configs=configs, computeds=computeds
         )
-        setSilent(wasSilent)
         if show:
             return dict(
                 (kind, tuple(sorted(kindSet)))
@@ -572,8 +546,8 @@ class Fabric:
 
         Parameters
         ----------
-        silent: string, optional cfabric.timestamp.SILENT_D
-            See `cfabric.timestamp.Timestamp`
+        silent: string, optional "auto"
+            Verbosity level: "verbose", "auto", "terse", or "deep"
         """
 
         silent = silentConvert(silent)
@@ -668,8 +642,8 @@ class Fabric:
             If you pass `location=path1` and `module=path2`,
             TF will save in `path1/path2`.
 
-        silent: string, optional cfabric.timestamp.SILENT_D
-            See `cfabric.timestamp.Timestamp`
+        silent: string, optional "auto"
+            Verbosity level: "verbose", "auto", "terse", or "deep"
         """
 
         if nodeFeatures is None:
@@ -680,24 +654,16 @@ class Fabric:
             metaData = {}
 
         silent = silentConvert(silent)
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        setSilent = tmObj.setSilent
-        indent = tmObj.indent
-        info = tmObj.info
-        error = tmObj.error
+        set_logging_level(silent)
 
         good = True
-        wasSilent = isSilent()
-        setSilent(silent)
-        indent(level=0, reset=True)
         self._getWriteLoc(location=location, module=module)
         configFeatures = dict(
             f
             for f in metaData.items()
             if f[0] != "" and f[0] not in nodeFeatures and f[0] not in edgeFeatures
         )
-        info(
+        logger.info(
             "Exporting {} node and {} edge and {} configuration features to {}:".format(
                 len(nodeFeatures),
                 len(edgeFeatures),
@@ -718,7 +684,7 @@ class Fabric:
         maxNode = None
         slotType = None
         if OTYPE in nodeFeatures:
-            info(f"VALIDATING {OSLOTS} feature")
+            logger.info(f"VALIDATING {OSLOTS} feature")
             otypeData = nodeFeatures[OTYPE]
             if type(otypeData) is tuple:
                 (otypeData, slotType, maxSlot, maxNode) = otypeData
@@ -727,16 +693,16 @@ class Fabric:
                 maxSlot = max(n for n in otypeData if otypeData[n] == slotType)
                 maxNode = max(otypeData)
         if OSLOTS in edgeFeatures:
-            info(f"VALIDATING {OSLOTS} feature")
+            logger.info(f"VALIDATING {OSLOTS} feature")
             oslotsData = edgeFeatures[OSLOTS]
             if type(oslotsData) is tuple:
                 (oslotsData, maxSlot, maxNode) = oslotsData
             if maxSlot is None or maxNode is None:
-                error(f"ERROR: cannot check validity of {OSLOTS} feature")
+                logger.error(f"ERROR: cannot check validity of {OSLOTS} feature")
                 good = False
             else:
-                info(f"maxSlot={maxSlot:>11}")
-                info(f"maxNode={maxNode:>11}")
+                logger.info(f"maxSlot={maxSlot:>11}")
+                logger.info(f"maxNode={maxNode:>11}")
                 maxNodeInData = max(oslotsData)
                 minNodeInData = min(oslotsData)
 
@@ -757,15 +723,15 @@ class Fabric:
                             unmappedNodes.append(n)
 
                 if mappedSlotNodes:
-                    error(f"ERROR: {OSLOTS} maps slot nodes")
-                    error(makeExamples(mappedSlotNodes), tm=False)
+                    logger.error(f"ERROR: {OSLOTS} maps slot nodes")
+                    logger.error(makeExamples(mappedSlotNodes))
                     good = False
                 if fakeNodes:
-                    error(f"ERROR: {OSLOTS} maps nodes that are not in {OTYPE}")
-                    error(makeExamples(fakeNodes), tm=False)
+                    logger.error(f"ERROR: {OSLOTS} maps nodes that are not in {OTYPE}")
+                    logger.error(makeExamples(fakeNodes))
                     good = False
                 if unmappedNodes:
-                    error(f"ERROR: {OSLOTS} fails to map nodes:")
+                    logger.error(f"ERROR: {OSLOTS} fails to map nodes:")
                     unmappedByType = {}
                     for n in unmappedNodes:
                         unmappedByType.setdefault(
@@ -775,11 +741,11 @@ class Fabric:
                         unmappedByType.items(),
                         key=lambda x: (-len(x[1]), x[0]),
                     ):
-                        error(f"--- unmapped {nType:<10} : {makeExamples(nodes)}")
+                        logger.error(f"--- unmapped {nType:<10} : {makeExamples(nodes)}")
                     good = False
 
             if good:
-                info(f"OK: {OSLOTS} is valid")
+                logger.info(f"OK: {OSLOTS} is valid")
 
         for fName, data, isEdge, isConfig in todo:
             edgeValues = False
@@ -792,7 +758,6 @@ class Fabric:
                 del fMeta["edgeValues"]
             fObj = Data(
                 f"{self.writeDir}/{fName}.tf",
-                self.tmObj,
                 data=data,
                 metaData=fMeta,
                 isEdge=isEdge,
@@ -804,8 +769,7 @@ class Fabric:
                 total[tag] += 1
             else:
                 failed[tag] += 1
-        indent(level=0)
-        info(
+        logger.info(
             f"""Exported {total["node"]} node features"""
             f""" and {total["edge"]} edge features"""
             f""" and {total["config"]} config features"""
@@ -813,35 +777,24 @@ class Fabric:
         )
         if len(failed):
             for tag, nf in sorted(failed.items()):
-                error(f"Failed to export {nf} {tag} features")
+                logger.error(f"Failed to export {nf} {tag} features")
             good = False
 
-        setSilent(wasSilent)
         return good
 
     def _loadFeature(self, fName: str, optional: bool = False) -> None:
         if not self.good:
             return
 
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        error = tmObj.error
-
-        silent = isSilent()
         if fName not in self.features:
             if not optional:
-                error(f'Feature "{fName}" not available in\n{self.locationRep}')
+                logger.error(f'Feature "{fName}" not available in\n{self.locationRep}')
                 self.good = False
         else:
-            if not self.features[fName].load(silent=silent, _withGc=self._withGc):
+            if not self.features[fName].load(silent=self.silent, _withGc=self._withGc):
                 self.good = False
 
     def _makeIndex(self) -> None:
-        tmObj = self.tmObj
-        info = tmObj.info
-        debug = tmObj.debug
-        warning = tmObj.warning
-
         self.features = {}
         self.featuresIgnored = {}
         tfFiles = {}
@@ -862,32 +815,30 @@ class Fabric:
             for featurePath in sorted(set(featurePaths[0:-1])):
                 if featurePath != chosenFPath:
                     self.featuresIgnored.setdefault(fName, []).append(featurePath)
-            self.features[fName] = Data(chosenFPath, self.tmObj)
+            self.features[fName] = Data(chosenFPath)
         self._getWriteLoc()
-        debug(
+        logger.debug(
             "{} features found and {} ignored".format(
                 len(tfFiles),
                 sum(len(x) for x in self.featuresIgnored.values()),
-            ),
-            tm=False,
+            )
         )
 
         self.featuresOnly = False
 
         if OTYPE not in self.features or OSLOTS not in self.features:
-            info(
+            logger.info(
                 f"Not all of the warp features {OTYPE} and {OSLOTS} "
                 f"are present in\n{self.locationRep}"
             )
-            info("Only the Feature and Edge APIs will be enabled")
+            logger.info("Only the Feature and Edge APIs will be enabled")
             self.featuresOnly = True
         if OTEXT in self.features:
             self._loadFeature(OTEXT, optional=True)
         else:
-            info((f'Warp feature "{OTEXT}" not found. Working without Text-API\n'))
+            logger.info(f'Warp feature "{OTEXT}" not found. Working without Text-API')
             self.features[OTEXT] = Data(
                 f"{OTEXT}.tf",
-                self.tmObj,
                 isConfig=True,
                 metaData=OTEXT_DEFAULT,
             )
@@ -911,7 +862,7 @@ class Fabric:
                     dependencies = dependencies + sFeats
                 for dep in dependencies:
                     if dep not in self.features:
-                        warning(
+                        logger.warning(
                             "Missing dependency for computed data feature "
                             f'"{fName}": "{dep}"'
                         )
@@ -920,7 +871,6 @@ class Fabric:
                     good = False
                 self.features[fName] = Data(
                     f"{self.warpDir}/{fName}.x",
-                    self.tmObj,
                     method=method,
                     dependencies=[self.features.get(dep, None) for dep in dependencies],
                 )
@@ -949,15 +899,13 @@ class Fabric:
         )
 
     def _precompute(self) -> None:
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
         good = True
 
         for fName, dep2 in self.precomputeList:
             ok = getattr(self, f"{fName.strip('_')}OK", False)
             if dep2 == 2 and not ok:
                 continue
-            if not self.features[fName].load(silent=isSilent()):
+            if not self.features[fName].load(silent=self.silent):
                 good = False
                 break
         self.good = good
@@ -966,13 +914,8 @@ class Fabric:
         if not self.good:
             return None
 
-        tmObj = self.tmObj
-        isSilent = tmObj.isSilent
-        indent = tmObj.indent
-        debug = tmObj.debug
         featuresOnly = self.featuresOnly
 
-        silent = isSilent()
         api = Api(self)
         api.featuresOnly = featuresOnly
 
@@ -1048,9 +991,8 @@ class Fabric:
             addNodes(api)
             addLocality(api)
             addText(api)
-            addSearch(api, silent)
-        indent(level=0)
-        debug("All features loaded / computed - for details use TF.isLoaded()")
+            addSearch(api, self.silent)
+        logger.debug("All features loaded / computed - for details use TF.isLoaded()")
         self.api = api
         setattr(self, "isLoaded", self.api.isLoaded)
         return api
@@ -1059,9 +1001,6 @@ class Fabric:
         if not self.good:
             return None
         api = self.api
-        tmObj = self.tmObj
-        indent = tmObj.indent
-        debug = tmObj.debug
 
         requestedSet = set(self.featuresRequested)
 
@@ -1093,8 +1032,7 @@ class Fabric:
                             if hasattr(api.F, fName):
                                 delattr(api.F, fName)
                         fObj.unload()
-        indent(level=0)
-        debug("All additional features loaded - for details use TF.isLoaded()")
+        logger.debug("All additional features loaded - for details use TF.isLoaded()")
 
     def _detect_cfm(self) -> Path | None:
         """Check if .cfm directory exists for the corpus.
@@ -1130,12 +1068,7 @@ class Fabric:
             True if compilation succeeded
         """
         silent = silentConvert(silent)
-        tmObj = self.tmObj
-        setSilent = tmObj.setSilent
-        isSilent = tmObj.isSilent
-
-        wasSilent = isSilent()
-        setSilent(silent)
+        set_logging_level(silent)
 
         # Use the first location with the last module as source
         source_dir = (
@@ -1143,10 +1076,9 @@ class Fabric:
             if self.modules and self.modules[-1]
             else self.locations[-1]
         )
-        compiler = Compiler(source_dir, self.tmObj)
+        compiler = Compiler(source_dir)
         result = compiler.compile(output_dir)
 
-        setSilent(wasSilent)
         return result
 
     def _makeApiFromCfm(self, mmap_mgr: MmapManager) -> Api | None:
@@ -1162,10 +1094,6 @@ class Fabric:
         Api | None
             A new Api if built successfully, else None.
         """
-        tmObj = self.tmObj
-        info = tmObj.info
-        debug = tmObj.debug
-
         api = Api(self)
         api.featuresOnly = False
 
@@ -1175,7 +1103,7 @@ class Fabric:
         node_types = mmap_mgr.node_types
 
         # Load warp features
-        debug("  Loading otype...")
+        logger.debug("  Loading otype...")
         otype_arr = mmap_mgr.get_array('warp', 'otype')
         type_list_raw = mmap_mgr.get_json('warp', 'otype_types')
 
@@ -1190,17 +1118,19 @@ class Fabric:
         otype_meta = self._feature_meta_from_cfm(mmap_mgr, OTYPE)
         otype_feature = OtypeFeature(api, otype_meta, otype_arr, type_list_dict)
         setattr(api.F, OTYPE, otype_feature)
+        self._register_feature_meta(OTYPE, otype_meta, is_edge=False)
 
-        debug("  Loading oslots...")
+        logger.debug("  Loading oslots...")
         oslots_csr = mmap_mgr.get_csr('warp', 'oslots')
         oslots_meta = self._feature_meta_from_cfm(mmap_mgr, OSLOTS)
         oslots_feature = OslotsFeature(
             api, oslots_meta, oslots_csr, maxSlot=max_slot, maxNode=max_node
         )
         setattr(api.E, OSLOTS, oslots_feature)
+        self._register_feature_meta(OSLOTS, oslots_meta, is_edge=True)
 
         # Load computed data
-        debug("  Loading computed data...")
+        logger.debug("  Loading computed data...")
         self._loadComputedFromCfm(api, mmap_mgr)
 
         # Setup otype support dict (needed for otype.s())
@@ -1210,13 +1140,13 @@ class Fabric:
         meta = mmap_mgr.meta
         node_feature_names = meta.get('features', {}).get('node', [])
         for fname in node_feature_names:
-            debug(f"  Loading feature {fname}...")
+            logger.debug(f"  Loading feature {fname}...")
             self._loadNodeFeatureFromCfm(api, mmap_mgr, fname)
 
         # Load edge features
         edge_feature_names = meta.get('features', {}).get('edge', [])
         for fname in edge_feature_names:
-            debug(f"  Loading edge {fname}...")
+            logger.debug(f"  Loading edge {fname}...")
             self._loadEdgeFeatureFromCfm(api, mmap_mgr, fname)
 
         # Setup otext-related attributes from meta.json
@@ -1252,7 +1182,7 @@ class Fabric:
                 setattr(api.C, 'sections', Computed(api, sections_data))
 
         addText(api)
-        addSearch(api, tmObj.isSilent())
+        addSearch(api, self.silent)
 
         return api
 
@@ -1262,6 +1192,29 @@ class Fabric:
             return mmap_mgr.get_json('features', f'{fname}_meta')
         except FileNotFoundError:
             return {}
+
+    def _register_feature_meta(
+        self, fname: str, meta: dict[str, str], is_edge: bool = False
+    ) -> None:
+        """Register feature metadata in self.features for API compatibility.
+
+        When loading from .cfm format, we need to populate self.features
+        so that TF.features[name].metaData works the same as .tf loading.
+        """
+        # Create a lightweight Data-like object with just metaData
+        feature_data = Data(
+            path=f"<cfm>/{fname}",
+            metaData=meta,
+            isEdge=is_edge,
+        )
+        feature_data.dataLoaded = True
+
+        # Set dataType for TF search compatibility
+        # TF search checks feature.dataType, not metadata
+        value_type = meta.get('valueType', meta.get('value_type', 'str'))
+        feature_data.dataType = value_type
+
+        self.features[fname] = feature_data
 
     def _loadComputedFromCfm(self, api: Api, mmap_mgr: MmapManager) -> None:
         """Load computed data (C.*) from .cfm format."""
@@ -1359,6 +1312,9 @@ class Fabric:
 
         setattr(api.F, fname, feature)
 
+        # Populate self.features for metadata access (matches .tf loading behavior)
+        self._register_feature_meta(fname, meta, is_edge=False)
+
     def _loadEdgeFeatureFromCfm(self, api: Api, mmap_mgr: MmapManager, fname: str) -> None:
         """Load an edge feature from .cfm format."""
         from cfabric.storage.csr import CSRArrayWithValues
@@ -1385,3 +1341,6 @@ class Fabric:
             feature = EdgeFeature(api, meta, csr, has_values, dataInv=inv_csr)
 
         setattr(api.E, fname, feature)
+
+        # Populate self.features for metadata access (matches .tf loading behavior)
+        self._register_feature_meta(fname, meta, is_edge=True)

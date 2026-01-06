@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 import types
 from random import randrange
 from inspect import signature
@@ -23,6 +24,8 @@ from cfabric.search.syntax import (
     QEND,
 )
 from cfabric.utils.helpers import project
+
+logger = logging.getLogger(__name__)
 
 # SPINNING ###
 
@@ -93,10 +96,6 @@ def _doQuantifier(
     from .searchexe import SearchExe
 
     (quKind, quTemplates, parentName, ln) = quantifier
-    TF = searchExe.api.TF
-    info = TF.info
-    _msgCache = searchExe._msgCache
-    indent = TF.indent
     showQuantifiers = searchExe.showQuantifiers
     silent = searchExe.silent
     level = searchExe.level
@@ -105,8 +104,7 @@ def _doQuantifier(
     offset = searchExe.offset + ln
 
     if showQuantifiers:
-        indent(level=level + 1, reset=True)
-        info(f'"Quantifier on "{cleanAtom}"', cache=_msgCache)
+        logger.info(f'"Quantifier on "{cleanAtom}"')
 
     if quKind == QWITHOUT:
         queryN = "\n".join((cleanAtom, quTemplates[0]))
@@ -121,17 +119,14 @@ def _doQuantifier(
             shallow=True,
             showQuantifiers=showQuantifiers,
             silent=silent,
-            _msgCache=_msgCache,
             setInfo=searchExe.setInfo,
         )
         if showQuantifiers:
-            indent(level=level + 2, reset=True)
-            info(f"{quKind}\n{queryN}\n{QEND}", tm=False, cache=_msgCache)
+            logger.info(f"{quKind}\n{queryN}\n{QEND}")
         noResults = exe.search()
         resultYarn = universe - noResults
         if showQuantifiers:
-            indent(level=level + 2)
-            info(f"{len(noResults)} nodes to exclude", cache=_msgCache)
+            logger.info(f"{len(noResults)} nodes to exclude")
     elif quKind == QWHERE:
         # compute the atom+antecedent:
         #   as result tuples
@@ -147,16 +142,13 @@ def _doQuantifier(
             shallow=False,
             showQuantifiers=showQuantifiers,
             silent=silent,
-            _msgCache=_msgCache,
             setInfo=searchExe.setInfo,
         )
         if showQuantifiers:
-            indent(level=level + 2, reset=True)
-            info(f"{quKind}\n{queryA}", tm=False, cache=_msgCache)
+            logger.info(f"{quKind}\n{queryA}")
         aResultTuples = exe.search(limit=0)
         if showQuantifiers:
-            indent(level=level + 2)
-            info(f"{len(aResultTuples)} matching nodes", cache=_msgCache)
+            logger.info(f"{len(aResultTuples)} matching nodes")
         if not aResultTuples:
             resultYarn = yarn
         else:
@@ -177,27 +169,20 @@ def _doQuantifier(
                 shallow=sizeA,
                 showQuantifiers=showQuantifiers,
                 silent=silent,
-                _msgCache=_msgCache,
                 setInfo=searchExe.setInfo,
             )
             if showQuantifiers:
-                indent(level=level + 2, reset=True)
-                info(f"{QHAVE}\n{queryAH}\n{QEND}", tm=False, cache=_msgCache)
+                logger.info(f"{QHAVE}\n{queryAH}\n{QEND}")
             ahResults = exe.search()
             if showQuantifiers:
-                indent(level=level + 2)
-                info(f"{len(ahResults)} matching nodes", cache=_msgCache)
+                logger.info(f"{len(ahResults)} matching nodes")
 
             # determine the shallow tuples that correspond to
             #   atom+antecedent but not consequent
             #   and then take the projection to their first components
             resultsAnotH = project(set(aResultTuples) - ahResults, 1)
             if showQuantifiers:
-                indent(level=level + 2)
-                info(
-                    f"{len(resultsAnotH)} match antecedent but not consequent",
-                    cache=_msgCache,
-                )
+                logger.info(f"{len(resultsAnotH)} match antecedent but not consequent")
 
             # now have the atoms that do NOT qualify:
             #   we subtract them from the universe
@@ -219,17 +204,11 @@ def _doQuantifier(
                 shallow=True,
                 showQuantifiers=showQuantifiers,
                 silent=silent,
-                _msgCache=_msgCache,
                 setInfo=searchExe.setInfo,
             )
             offset += len(alt.split("\n")) + 1
             if showQuantifiers:
-                indent(level=level + 2, reset=True)
-                info(
-                    (f"{quKind if i == 0 else QOR}\n{queryAlt}"),
-                    tm=False,
-                    cache=_msgCache,
-                )
+                logger.info(f"{quKind if i == 0 else QOR}\n{queryAlt}")
             altResults = exe.search()
             altResults &= universe
             nAlt = len(altResults)
@@ -237,14 +216,11 @@ def _doQuantifier(
             resultYarn |= altResults
             nNew = len(resultYarn)
             if showQuantifiers:
-                indent(level=level + 2)
-                info(f"adding {nAlt} to {nYarn} yields {nNew} nodes", cache=_msgCache)
+                logger.info(f"adding {nAlt} to {nYarn} yields {nNew} nodes")
                 if i == nAlts - 1:
-                    info(QEND, tm=False, cache=_msgCache)
+                    logger.info(QEND)
     if showQuantifiers:
-        indent(level=level + 1)
-        info(f"reduction from {len(yarn)} to {len(resultYarn)} nodes", cache=_msgCache)
-        indent(level=0)
+        logger.info(f"reduction from {len(yarn)} to {len(resultYarn)} nodes")
     return resultYarn
 
 

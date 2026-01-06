@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 from cfabric.core.config import OTYPE, OSLOTS, OMAP
 from cfabric.utils.helpers import makeIndex
-from cfabric.utils.timestamp import DEEP
+from cfabric.utils.logging import DEEP
 from cfabric.search.syntax import reTp
 
 # LOW-LEVEL NODE RELATIONS SEMANTICS ###

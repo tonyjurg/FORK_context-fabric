@@ -10,7 +10,7 @@ import sys
 from zipfile import ZIP_DEFLATED
 
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 """Program version."""
 
 NAME = "Context-Fabric"

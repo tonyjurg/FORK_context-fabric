@@ -9,6 +9,7 @@ numpy arrays with memory mapping for efficient multi-process access.
 from __future__ import annotations
 
 import json
+import logging
 import numpy as np
 from collections.abc import Iterable
 from pathlib import Path
@@ -29,12 +30,13 @@ from cfabric.core.config import (
 from cfabric.storage.csr import CSRArray, CSRArrayWithValues
 from cfabric.storage.string_pool import StringPool, IntFeatureArray
 from cfabric.utils.files import dirMake, fileExists, fileOpen
-from cfabric.utils.timestamp import Timestamp, SILENT_D
 from cfabric.utils.helpers import setFromSpec, valueFromTf, makeInverse, makeInverseVal
 import cfabric.precompute.prepare as prepare
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
+logger = logging.getLogger(__name__)
 
 
 def _check_sentinel_collision(
@@ -42,7 +44,6 @@ def _check_sentinel_collision(
     sentinel: int,
     feature_name: str,
     feature_kind: str,
-    tmObj: Timestamp,
 ) -> bool:
     """Check if data contains the sentinel value and warn if so.
 
@@ -56,8 +57,6 @@ def _check_sentinel_collision(
         Name of the feature (for warning message)
     feature_kind : str
         'node' or 'edge' (for warning message)
-    tmObj : Timestamp
-        Timestamp object for logging warnings
 
     Returns
     -------
@@ -66,7 +65,7 @@ def _check_sentinel_collision(
     """
     for v in values:
         if v == sentinel:
-            tmObj.warning(
+            logger.warning(
                 f"{feature_kind.capitalize()} feature '{feature_name}' contains "
                 f"value {sentinel} which collides with the None sentinel. "
                 f"This value will be incorrectly read as None after loading."
@@ -91,16 +90,13 @@ class Compiler:
     ----------
     source_dir : str
         Path to directory containing .tf source files
-    tmObj : Timestamp, optional
-        Timestamp object for logging messages. If None, a new one is created.
     """
 
-    def __init__(self, source_dir: str, tmObj: Timestamp | None = None) -> None:
+    def __init__(self, source_dir: str) -> None:
         self.source_dir: Path = Path(source_dir)
-        self.tmObj: Timestamp = tmObj or Timestamp()
-        self.info = self.tmObj.info
-        self.error = self.tmObj.error
-        self.warning = self.tmObj.warning
+        self.info = logger.info
+        self.error = logger.error
+        self.warning = logger.warning
 
         # Will be populated during compilation
         self.max_slot: int = 0
@@ -599,7 +595,7 @@ class Compiler:
         # Check for sentinel collision (-1 is used for missing values)
         _check_sentinel_collision(
             data.values(), IntFeatureArray.MISSING,
-            feature_name, 'node', self.tmObj
+            feature_name, 'node'
         )
 
         int_arr = IntFeatureArray.from_dict(data, self.max_node)
@@ -725,7 +721,7 @@ class Compiler:
             # Check for sentinel collision
             all_values = (v for row in data.values() for v in row.values())
             _check_sentinel_collision(
-                all_values, none_sentinel, feature_name, 'edge', self.tmObj
+                all_values, none_sentinel, feature_name, 'edge'
             )
         else:
             value_dtype = 'object'

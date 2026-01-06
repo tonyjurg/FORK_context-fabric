@@ -24,8 +24,8 @@ pip install context-fabric
 from cfabric.core import Fabric
 
 # Load a dataset
-TF = Fabric(locations='path/to/data')
-api = TF.load('feature1 feature2')
+CF = Fabric(locations='path/to/data')
+api = CF.load('feature1 feature2')
 
 # Navigate nodes
 for node in api.N():

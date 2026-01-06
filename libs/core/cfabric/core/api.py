@@ -7,6 +7,7 @@ It provides methods to navigate nodes and edges and lookup features.
 from __future__ import annotations
 
 import collections
+import logging
 from collections.abc import Iterable
 from textwrap import wrap, dedent
 from typing import Any, TYPE_CHECKING
@@ -24,7 +25,9 @@ from cfabric.features.computed import Computeds
 from cfabric.navigation.text import Text
 from cfabric.core.config import OTYPE, OSLOTS
 from cfabric.search.search import Search
-from cfabric.utils.timestamp import SILENT_D, DEEP, silentConvert
+from cfabric.utils.logging import SILENT_D, DEEP, silentConvert
+
+logger = logging.getLogger(__name__)
 
 
 API_REFS = dict(
@@ -75,23 +78,6 @@ class Api:
         self.Edge = self.E
         self.C = Computeds()
         self.Computed = self.C
-        tmObj = TF.tmObj
-        TF.silentOn = tmObj.silentOn
-        TF.silentOff = tmObj.silentOff
-        TF.isSilent = tmObj.isSilent
-        TF.setSilent = tmObj.setSilent
-        TF.info = tmObj.info
-        TF.warning = tmObj.warning
-        TF.error = tmObj.error
-        TF.cache = tmObj.cache
-        TF.reset = tmObj.reset
-        TF.indent = tmObj.indent
-
-        """All messages produced during the feature loading process.
-
-        It also shows the messages that have been suppressed due to the `silent`
-        parameter.
-        """
 
         TF.ensureLoaded = self.ensureLoaded
         TF.makeAvailableIn = self.makeAvailableIn
@@ -127,7 +113,7 @@ class Api:
 
         if not hasattr(self.F, fName):
             if warn:
-                self.TF.error(f'Node feature "{fName}" not loaded')
+                logger.error(f'Node feature "{fName}" not loaded')
             return None
         return getattr(self.F, fName)
 
@@ -153,7 +139,7 @@ class Api:
 
         if not hasattr(self.E, fName):
             if warn:
-                self.TF.error(f'Edge feature "{fName}" not loaded')
+                logger.error(f'Edge feature "{fName}" not loaded')
             return None
         return getattr(self.E, fName)
 
@@ -179,7 +165,7 @@ class Api:
 
         if not hasattr(self.C, fName):
             if warn:
-                self.TF.error(f'Computed feature "{fName}" not loaded')
+                logger.error(f'Computed feature "{fName}" not loaded')
             return None
         return getattr(self.C, fName)
 
@@ -485,7 +471,6 @@ class Api:
         F = self.F
         E = self.E
         TF = self.TF
-        warning = TF.warning
 
         needToLoad = set()
         loadedFeatures = set()
@@ -493,7 +478,7 @@ class Api:
         for fName in sorted(flattenToSet(features)):
             fObj = TF.features.get(fName, None)
             if not fObj:
-                warning(f'Cannot load feature "{fName}": not in dataset')
+                logger.warning(f'Cannot load feature "{fName}": not in dataset')
                 continue
             if fObj.dataLoaded and (hasattr(F, fName) or hasattr(E, fName)):
                 loadedFeatures.add(fName)

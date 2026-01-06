@@ -14,6 +14,7 @@ Basic usage:
 from cfabric.core.fabric import Fabric
 from cfabric.core.config import VERSION, NAME, BANNER
 from cfabric.downloader import download, list_corpora, get_cache_dir
+from cfabric.results import NodeInfo, NodeList, SearchResult, FeatureInfo, CorpusInfo
 
 __version__ = VERSION
 __all__ = [
@@ -25,4 +26,10 @@ __all__ = [
     "download",
     "list_corpora",
     "get_cache_dir",
+    # Result types for rich API responses
+    "NodeInfo",
+    "NodeList",
+    "SearchResult",
+    "FeatureInfo",
+    "CorpusInfo",
 ]

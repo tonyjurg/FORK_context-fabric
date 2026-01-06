@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-05 ([ck])
+
+### Added
+- `cfabric/results.py` - Rich result types for MCP server integration:
+  - `NodeInfo` - Node representation with type, text, section, and features
+  - `NodeList` - Paginated list of nodes with metadata
+  - `SearchResult` - Search results with full node context
+  - `FeatureInfo` - Feature metadata (name, kind, value type, description)
+  - `CorpusInfo` - Corpus metadata (node types, features, section structure)
+- `NodeInfo.section_ref` - Human-readable section reference (e.g., "Genesis 1:1")
+- `FeatureInfo.sample_values` - Top N values by frequency for feature discovery
+- `FeatureInfo.total_unique_values` - Count of unique feature values
+
+### Changed
+- Renamed `TF` variable to `CF` in documentation examples (README.md)
+
+### Fixed
+- `.cfm` loading now populates `TF.features` metadata for API compatibility with `.tf` loading
+- `NodeInfo` converts numpy types to Python int for JSON serialization
+- `FeatureInfo` handles both `valueType` (.tf) and `value_type` (.cfm) metadata keys
+- `T.text()` now handles numpy integer node IDs from search results
+
 ## [0.2.1] - 2026-01-05 ([ck])
 
 ### Added

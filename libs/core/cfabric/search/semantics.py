@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 import types
 import re
 from typing import TYPE_CHECKING, Any
@@ -14,37 +15,37 @@ if TYPE_CHECKING:
 from cfabric.search.relations import add_K_Relations, add_F_Relations, add_V_Relations
 from cfabric.search.syntax import reTp, kRe, deContext
 
+logger = logging.getLogger(__name__)
+
 # SEMANTIC ANALYSIS OF SEARCH TEMPLATE ###
 
 
 def semantics(searchExe: SearchExe) -> None:
     if not searchExe.good:
         return
-    error = searchExe.api.TF.error
-    _msgCache = searchExe._msgCache
     searchExe.badSemantics = []
     offset = searchExe.offset
 
     _grammar(searchExe)
 
     if not searchExe.good:
-        searchExe.showOuterTemplate(_msgCache)
+        searchExe.showOuterTemplate(None)
         for i, line in enumerate(searchExe.searchLines):
-            error(f"{i + offset:>2} {line}", tm=False, cache=_msgCache)
+            logger.error(f"{i + offset:>2} {line}")
         for ln, eline in searchExe.badSemantics:
             txt = eline if ln is None else f"line {ln + offset}: {eline}"
-            error(txt, tm=False, cache=_msgCache)
+            logger.error(txt)
         return
 
     if searchExe.good:
         _validation(searchExe)
     if not searchExe.good:
-        searchExe.showOuterTemplate(_msgCache)
+        searchExe.showOuterTemplate(None)
         for i, line in enumerate(searchExe.searchLines):
-            error(f"{i + offset:>2} {line}", tm=False, cache=_msgCache)
+            logger.error(f"{i + offset:>2} {line}")
         for ln, eline in searchExe.badSemantics:
             txt = eline if ln is None else f"line {ln + offset}: {eline}"
-            error(txt, tm=False, cache=_msgCache)
+            logger.error(txt)
 
 
 def _grammar(searchExe: SearchExe) -> None:

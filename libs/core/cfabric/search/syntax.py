@@ -4,11 +4,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import TYPE_CHECKING, Any, Callable, Pattern
 
 if TYPE_CHECKING:
     from cfabric.search.searchexe import SearchExe
+
+logger = logging.getLogger(__name__)
 
 # SYNTACTIC ANALYSIS OF SEARCH TEMPLATE ###
 
@@ -80,8 +83,6 @@ reTp: type = type(reRe)
 
 
 def syntax(searchExe: SearchExe) -> None:
-    error = searchExe.api.TF.error
-    _msgCache = searchExe._msgCache
     searchExe.good = True
     searchExe.badSyntax: list[tuple[int | None, str]] = []
     searchExe.searchLines: list[str] = searchExe.searchTemplate.split("\n")
@@ -90,12 +91,12 @@ def syntax(searchExe: SearchExe) -> None:
     _tokenize(searchExe)
 
     if not searchExe.good:
-        searchExe.showOuterTemplate(_msgCache)
+        searchExe.showOuterTemplate(None)
         for i, line in enumerate(searchExe.searchLines):
-            error(f"{i + offset:>2} {line}", tm=False, cache=_msgCache)
+            logger.error(f"{i + offset:>2} {line}")
         for ln, eline in searchExe.badSyntax:
             txt = eline if ln is None else f"line {ln + offset}: {eline}"
-            error(txt, tm=False, cache=_msgCache)
+            logger.error(txt)
 
 
 def _tokenize(searchExe: SearchExe) -> None:

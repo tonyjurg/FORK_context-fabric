@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Callable, Generator
 
 if TYPE_CHECKING:
@@ -16,7 +17,9 @@ from cfabric.search.graph import connectedness, displayPlan
 from cfabric.search.spin import spinAtoms, spinEdges
 from cfabric.search.stitch import setStrategy, stitch
 from cfabric.core.config import SEARCH_FAIL_FACTOR, YARN_RATIO, TRY_LIMIT_FROM, TRY_LIMIT_TO
-from cfabric.utils.timestamp import DEEP
+from cfabric.utils.logging import DEEP
+
+logger = logging.getLogger(__name__)
 
 
 PROGRESS: int = 100
@@ -52,9 +55,6 @@ class SearchExe:
         if setInfo is None:
             setInfo = {}
         self.api: Api = api
-        TF = api.TF
-        setSilent = TF.setSilent
-
         self.searchTemplate: str = searchTemplate
         self.outerTemplate: str | None = outerTemplate
         self.quKind: str | None = quKind
@@ -63,7 +63,6 @@ class SearchExe:
         self.sets: dict[str, set[int]] | None = sets
         self.shallow: int = 0 if not shallow else 1 if shallow is True else shallow
         self.silent: str = silent
-        setSilent(silent)
         self.showQuantifiers: bool = showQuantifiers
         self._msgCache: list[Any] | int = (
             _msgCache if type(_msgCache) is list else -1 if _msgCache else 0
@@ -82,63 +81,34 @@ class SearchExe:
         set[tuple[int, ...]] |
         Generator[tuple[int, ...], None, None]
     ):
-        api = self.api
-        TF = api.TF
-        setSilent = TF.setSilent
-        setSilent(True)
         self.study()
-        setSilent(self.silent)
         return self.fetch(limit=limit)
 
     def study(self, strategy: str | None = None) -> None:
-        api = self.api
-        TF = api.TF
-        info = TF.info
-        indent = TF.indent
-        isSilent = TF.isSilent
-        setSilent = TF.setSilent
-        _msgCache = self._msgCache
-
-        indent(level=0, reset=True)
         self.good = True
-
-        wasSilent = isSilent()
 
         setStrategy(self, strategy)
         if not self.good:
             return
 
-        info("Checking search template ...", cache=_msgCache)
+        logger.info("Checking search template ...")
 
         self._parse()
         self._prepare()
         if not self.good:
             return
-        info(
-            f"Setting up search space for {len(self.qnodes)} objects ...",
-            cache=_msgCache,
-        )
+        logger.info(f"Setting up search space for {len(self.qnodes)} objects ...")
         spinAtoms(self)
-        # in spinAtoms an inner call to study may have happened due to quantifiers
-        # That will restore the silent level to what we had outside
-        # study(). So we have to make it deep again.
-        setSilent(wasSilent)
-        info(
-            f"Constraining search space with {len(self.qedges)} relations ...",
-            cache=_msgCache,
-        )
+        logger.info(f"Constraining search space with {len(self.qedges)} relations ...")
         spinEdges(self)
-        info(f"\t{len(self.thinned)} edges thinned", cache=_msgCache)
-        info(
-            f"Setting up retrieval plan with strategy {self.strategyName} ...",
-            cache=_msgCache,
-        )
+        logger.info(f"\t{len(self.thinned)} edges thinned")
+        logger.info(f"Setting up retrieval plan with strategy {self.strategyName} ...")
         stitch(self)
         if self.good:
             yarnContent = sum(len(y) for y in self.yarns.values())
-            info(f"Ready to deliver results from {yarnContent} nodes", cache=_msgCache)
-            info("Iterate over S.fetch() to get the results", tm=False, cache=_msgCache)
-            info("See S.showPlan() to interpret the results", tm=False, cache=_msgCache)
+            logger.info(f"Ready to deliver results from {yarnContent} nodes")
+            logger.debug("Iterate over S.fetch() to get the results")
+            logger.debug("See S.showPlan() to interpret the results")
 
     def fetch(
         self, limit: int | None = None
@@ -149,10 +119,7 @@ class SearchExe:
         Generator[tuple[int, ...], None, None]
     ):
         api = self.api
-        TF = api.TF
         F = api.F
-        error = TF.error
-        _msgCache = self._msgCache
 
         if limit and limit < 0:
             limit = 0
@@ -170,9 +137,8 @@ class SearchExe:
                         yield result
                     else:
                         if not limit:
-                            error(
-                                f"cut off at {failLimit} results. There are more ...",
-                                cache=_msgCache,
+                            logger.error(
+                                f"cut off at {failLimit} results. There are more ..."
                             )
                         return
 
@@ -183,22 +149,11 @@ class SearchExe:
         return queryResults
 
     def count(self, progress: int | None = None, limit: int | None = None) -> None:
-        TF = self.api.TF
-        info = TF.info
-        error = TF.error
-        _msgCache = self._msgCache
-        indent = TF.indent
-        indent(level=0, reset=True)
-
         if limit and limit < 0:
             limit = 0
 
         if not self.good:
-            error(
-                "This search has problems. No results to count.",
-                tm=False,
-                cache=_msgCache,
-            )
+            logger.error("This search has problems. No results to count.")
             return
 
         if progress is None:
@@ -211,11 +166,7 @@ class SearchExe:
             failLimit = SEARCH_FAIL_FACTOR * self.api.F.otype.maxNode
             msg = ""
 
-        info(
-            f"Counting results per {progress}{msg} ...",
-            cache=_msgCache,
-        )
-        indent(level=1, reset=True)
+        logger.info(f"Counting results per {progress}{msg} ...")
 
         j = 0
         good = True
@@ -227,15 +178,12 @@ class SearchExe:
             j += 1
             if j == progress:
                 j = 0
-                info(i + 1, cache=_msgCache)
+                logger.info(str(i + 1))
 
-        indent(level=0)
         if good:
-            info(f"Done: {i + 1} results", cache=_msgCache)
+            logger.info(f"Done: {i + 1} results")
         else:
-            error(
-                f"cut off at {failLimit} results. There are more ...", cache=_msgCache
-            )
+            logger.error(f"cut off at {failLimit} results. There are more ...")
 
     # SHOWING WITH THE SEARCH GRAPH ###
 
@@ -243,14 +191,13 @@ class SearchExe:
         displayPlan(self, details=details)
 
     def showOuterTemplate(self, _msgCache: list[Any] | int) -> None:
-        error = self.api.TF.error
         offset = self.offset
         outerTemplate = self.outerTemplate
         quKind = self.quKind
         if offset and outerTemplate is not None:
             for i, line in enumerate(outerTemplate.split("\n")):
-                error(f"{i:>2} {line}", tm=False, cache=_msgCache)
-            error(f"line {offset:>2}: Error under {quKind}:", tm=False, cache=_msgCache)
+                logger.error(f"{i:>2} {line}")
+            logger.error(f"line {offset:>2}: Error under {quKind}:")
 
     # TOP-LEVEL IMPLEMENTATION METHODS
 
