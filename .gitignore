@@ -65,5 +65,14 @@ env/
 htmlcov/
 .tox/
 
+# LaTeX build artifacts
+*.aux
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+
 # Others
 .private
