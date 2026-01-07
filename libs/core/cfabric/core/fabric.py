@@ -13,6 +13,7 @@ import collections
 import logging
 from itertools import chain
 from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 from pathlib import Path
@@ -1055,6 +1056,10 @@ class Fabric:
         Compiles Text-Fabric source files into the Context Fabric memory-mapped
         format for faster loading and shared memory across processes.
 
+        If data has already been loaded via load(), the precomputed data will be
+        passed to the Compiler to avoid re-parsing .tf files and re-running
+        precomputation.
+
         Parameters
         ----------
         output_dir : str, optional
@@ -1076,10 +1081,89 @@ class Fabric:
             if self.modules and self.modules[-1]
             else self.locations[-1]
         )
+
+        # Gather precomputed data if available
+        precomputed = self._gather_precomputed_data()
+
         compiler = Compiler(source_dir)
-        result = compiler.compile(output_dir)
+        result = compiler.compile(output_dir, precomputed=precomputed)
 
         return result
+
+    def _gather_precomputed_data(self) -> dict[str, Any] | None:
+        """Gather already-loaded data to pass to the Compiler.
+
+        Returns
+        -------
+        dict | None
+            Dictionary of precomputed data, or None if data hasn't been loaded.
+        """
+        # Check if WARP features are loaded
+        if OTYPE not in self.features or OSLOTS not in self.features:
+            return None
+
+        otype_feat = self.features[OTYPE]
+        oslots_feat = self.features[OSLOTS]
+
+        if not otype_feat.dataLoaded or not oslots_feat.dataLoaded:
+            return None
+
+        # Gather WARP data
+        precomputed: dict[str, Any] = {
+            'otype': otype_feat.data,
+            'oslots': oslots_feat.data,
+            'otext_meta': self.features.get(OTEXT, Data('')).metaData or {},
+        }
+
+        # Gather feature metadata
+        feature_meta: dict[str, dict[str, str]] = {}
+        for fname, fobj in self.features.items():
+            if fobj.metaData:
+                feature_meta[fname] = dict(fobj.metaData)
+        precomputed['feature_meta'] = feature_meta
+
+        # Gather computed features data
+        computed_features = {
+            '__levels__': 'levels',
+            '__order__': 'order',
+            '__rank__': 'rank',
+            '__levUp__': 'levUp',
+            '__levDown__': 'levDown',
+            '__boundary__': 'boundary',
+        }
+
+        for internal_name, output_name in computed_features.items():
+            if internal_name in self.features:
+                fobj = self.features[internal_name]
+                if fobj.dataLoaded and fobj.data is not None:
+                    precomputed[output_name] = fobj.data
+
+        # Gather node and edge features
+        node_features: dict[str, dict[int, Any]] = {}
+        edge_features: dict[str, tuple[dict[int, Any], bool]] = {}
+
+        for fname, fobj in self.features.items():
+            # Skip WARP, config, and computed features
+            if fname in (OTYPE, OSLOTS, OTEXT):
+                continue
+            if fname.startswith('__') and fname.endswith('__'):
+                continue
+            if fobj.isConfig:
+                continue
+            if fobj.method:
+                continue
+            if not fobj.dataLoaded or fobj.data is None:
+                continue
+
+            if fobj.isEdge:
+                edge_features[fname] = (fobj.data, fobj.edgeValues)
+            else:
+                node_features[fname] = fobj.data
+
+        precomputed['node_features'] = node_features
+        precomputed['edge_features'] = edge_features
+
+        return precomputed
 
     def _makeApiFromCfm(self, mmap_mgr: MmapManager) -> Api | None:
         """Build API from memory-mapped .cfm data.

@@ -120,7 +120,11 @@ class Compiler:
         self._levup_data: list[tuple[int, ...]] | None = None
         self._levdown_data: list[tuple[int, ...]] | None = None
 
-    def compile(self, output_dir: str | Path | None = None) -> bool:
+    def compile(
+        self,
+        output_dir: str | Path | None = None,
+        precomputed: dict[str, Any] | None = None,
+    ) -> bool:
         """
         Compile all .tf files to .cfm format.
 
@@ -128,6 +132,21 @@ class Compiler:
         ----------
         output_dir : str, optional
             Output directory. Defaults to {source_dir}/.cfm/{CFM_VERSION}/
+        precomputed : dict, optional
+            Pre-computed data from Fabric.load() to avoid re-parsing .tf files.
+            If provided, skips loading from disk and uses this data instead.
+            Expected keys:
+            - 'otype': tuple (otype_list, maxSlot, maxNode, slotType)
+            - 'oslots': tuple (oslots_list, maxSlot, maxNode)
+            - 'otext_meta': dict of otext metadata
+            - 'feature_meta': dict mapping feature names to metadata dicts
+            - 'levels': list of (type, avgSlots, minNode, maxNode) tuples
+            - 'order': list of node IDs in canonical order
+            - 'rank': list of ranks indexed by node ID
+            - 'levUp': list of tuples (embedders for each node)
+            - 'levDown': list of tuples (embedded children for each node)
+            - 'node_features': dict mapping feature names to {node: value} dicts
+            - 'edge_features': dict mapping feature names to (data, has_values) tuples
 
         Returns
         -------
@@ -143,6 +162,15 @@ class Compiler:
         # Create directory structure
         self._create_directories(output_dir)
 
+        if precomputed:
+            # Use pre-computed data instead of re-parsing .tf files
+            return self._compile_from_precomputed(output_dir, precomputed)
+        else:
+            # Original flow: load from disk
+            return self._compile_from_disk(output_dir)
+
+    def _compile_from_disk(self, output_dir: Path) -> bool:
+        """Compile by loading .tf files from disk (original flow)."""
         # 1. Load and compile WARP features
         self.info("Loading WARP features...")
         if not self._load_otype():
@@ -177,6 +205,105 @@ class Compiler:
         self._write_meta(output_dir)
 
         self.info("Compilation complete")
+        return True
+
+    def _compile_from_precomputed(self, output_dir: Path, precomputed: dict[str, Any]) -> bool:
+        """Compile using pre-computed data from Fabric.load()."""
+        self.info("Using pre-computed data (skipping .tf parsing)...")
+
+        # 1. Extract WARP data
+        self._otype_data = precomputed['otype']
+        self._oslots_data = precomputed['oslots']
+        self._otext_meta = precomputed.get('otext_meta', {})
+        self._feature_meta = precomputed.get('feature_meta', {})
+
+        # Set instance variables from otype data
+        (otype_list, max_slot, max_node, slot_type) = self._otype_data
+        self.max_slot = max_slot
+        self.max_node = max_node
+        self.slot_type = slot_type
+
+        # Collect unique node types
+        type_set: set[str] = {slot_type}
+        for t in otype_list:
+            type_set.add(t)
+        self.node_types = sorted(type_set)
+
+        # 2. Compile WARP to numpy format
+        self.info("Compiling WARP features...")
+        if not self._compile_otype(output_dir):
+            return False
+        if not self._compile_oslots(output_dir):
+            return False
+
+        # 3. Use pre-computed computed features (skip re-computation)
+        self.info("Writing pre-computed data...")
+        if not self._write_precomputed(output_dir, precomputed):
+            return False
+
+        # 4. Extract and compile regular features
+        self._node_features = precomputed.get('node_features', {})
+        self._edge_features = precomputed.get('edge_features', {})
+
+        self.info("Compiling node features...")
+        self._compile_node_features(output_dir)
+
+        self.info("Compiling edge features...")
+        self._compile_edge_features(output_dir)
+
+        # 5. Write metadata
+        self._write_meta(output_dir)
+
+        self.info("Compilation complete")
+        return True
+
+    def _write_precomputed(self, output_dir: Path, precomputed: dict[str, Any]) -> bool:
+        """Write pre-computed data to .cfm format."""
+        computed_dir = output_dir / 'computed'
+
+        # 1. Write levels
+        levels_data = precomputed.get('levels')
+        if levels_data:
+            levels_json: list[dict[str, Any]] = [
+                {'type': t, 'avgSlots': avg, 'minNode': mn, 'maxNode': mx}
+                for t, avg, mn, mx in levels_data
+            ]
+            with open(computed_dir / 'levels.json', 'w') as f:
+                json.dump(levels_json, f, indent=1)
+
+        # 2. Write order
+        order_data = precomputed.get('order')
+        if order_data:
+            order_arr: NDArray[np.uint32] = np.array(order_data, dtype=NODE_DTYPE)
+            np.save(str(computed_dir / 'order.npy'), order_arr)
+
+        # 3. Write rank
+        rank_data = precomputed.get('rank')
+        if rank_data:
+            rank_arr: NDArray[np.uint32] = np.array(rank_data, dtype=NODE_DTYPE)
+            np.save(str(computed_dir / 'rank.npy'), rank_arr)
+
+        # 4. Write levUp
+        levup_data = precomputed.get('levUp')
+        if levup_data:
+            levup_csr = CSRArray.from_sequences(levup_data)
+            levup_csr.save(str(computed_dir / 'levup'))
+
+        # 5. Write levDown
+        levdown_data = precomputed.get('levDown')
+        if levdown_data:
+            levdown_csr = CSRArray.from_sequences(levdown_data)
+            levdown_csr.save(str(computed_dir / 'levdown'))
+
+        # 6. Write boundary
+        boundary_data = precomputed.get('boundary')
+        if boundary_data:
+            (first_slots, last_slots) = boundary_data
+            first_csr = CSRArray.from_sequences(first_slots)
+            first_csr.save(str(computed_dir / 'boundary_first'))
+            last_csr = CSRArray.from_sequences(last_slots)
+            last_csr.save(str(computed_dir / 'boundary_last'))
+
         return True
 
     def _create_directories(self, output_dir: Path) -> None:
