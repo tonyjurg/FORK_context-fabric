@@ -539,16 +539,6 @@ For a corpus like BHSA, the amortization is rapid. A researcher who loads the co
 
 For individual researchers, this means: compile once on first use, then enjoy dramatically improved performance for all future work. The sub-second loads save time on every session. For API deployments, the memory reduction (95\%) is the primary benefit---enabling deployments that would otherwise be economically impractical.
 
-\subsection{Fork Mode Considerations}
-
-The fork mode results deserve careful interpretation:
-
-\begin{enumerate}
-    \item \textbf{RSS double-counting}: Our methodology sums main + worker RSS, which double-counts shared COW pages. The ``true'' physical memory is lower than reported.
-    \item \textbf{COW page faults}: As workers modify data (triggering copy-on-write), memory consumption increases. Our benchmark accesses features read-only, representing best-case sharing.
-    \item \textbf{Platform availability}: Fork mode is discouraged on macOS (due to framework issues) and unavailable on Windows. Spawn mode results are more portable.
-\end{enumerate}
-
 \subsection{Production Scaling Analysis}
 
 We now consider how these results apply to a production environment: a Linux server running a corpus API (e.g., via gunicorn or uvicorn) that handles multiple concurrent requests. Production Python API servers typically use the prefork model---loading the application once, then forking worker processes to handle requests in parallel.
