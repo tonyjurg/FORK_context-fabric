@@ -588,7 +588,7 @@ In the standard prefork deployment model, workers share copy-on-write memory wit
 \label{tab:scaling}
 \end{table}
 
-Text-Fabric's fork mode scales efficiently (near-zero per-worker overhead via COW), but requires a 6.3 GB minimum regardless of worker count. Context-Fabric starts at 305 MB with $\sim$23 MB per additional worker.\footnote{At $\sim$260 workers, CF and TF fork mode converge in total memory; beyond that TF uses less. However, single-machine deployments rarely exceed 100 workers.}
+Text-Fabric's fork mode scales efficiently (near-zero per-worker overhead via COW), but requires a 6.3 GB minimum regardless of worker count. Context-Fabric starts at 305 MB with $\sim$23 MB per additional worker.\footnote{At $\sim$260 workers, CF and TF fork mode converge in total memory. However, modern async frameworks (uvicorn, FastAPI) handle thousands of concurrent requests per worker; 260 workers could serve 250,000+ concurrent requests---far beyond single-machine capacity. High-traffic APIs scale horizontally across machines rather than adding workers.}
 
 For deployments with fewer than $\sim$50 workers (the common case), Context-Fabric uses dramatically less memory. The 6 GB floor for Text-Fabric means a 16 GB server can only dedicate $\sim$10 GB to other services, whereas Context-Fabric leaves $\sim$15.5 GB available.
 
