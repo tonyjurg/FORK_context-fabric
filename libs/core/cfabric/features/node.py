@@ -38,7 +38,7 @@ class NodeFeature:
 
     For feature `fff` it is the result of `F.fff` or `Fs('fff')`.
 
-    Supports both legacy dict-based storage and new mmap-based backends
+    Supports both dict-based storage (.tf loading) and mmap-based backends (.cfm loading)
     (StringPool for string features, IntFeatureArray for int features).
     """
 

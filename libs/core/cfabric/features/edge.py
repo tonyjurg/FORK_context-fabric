@@ -21,8 +21,8 @@ But you can still iterate over the data of a feature as if it were a
 dictionary: `cfabric.edgefeature.EdgeFeature.items`
 
 This module supports two storage backends:
-- Legacy dict-based storage: dict[int, set|dict]
-- CSR mmap-based storage: CSRArray or CSRArrayWithValues
+- Dict-based storage (.tf loading): dict[int, set|dict]
+- CSR mmap-based storage (.cfm loading): CSRArray or CSRArrayWithValues
 """
 
 from __future__ import annotations
@@ -48,8 +48,8 @@ class EdgeFeature:
     For feature `fff` it is the result of `E.fff` or `Es('fff')`.
 
     This class supports two storage backends:
-    - Legacy: dict-based storage (dict[int, set|dict])
-    - Mmap: CSRArray or CSRArrayWithValues for memory-mapped access
+    - Dict-based (.tf loading): dict[int, set|dict]
+    - Mmap (.cfm loading): CSRArray or CSRArrayWithValues for memory-mapped access
 
     The backend is auto-detected based on the data type passed to __init__.
     """
@@ -83,12 +83,12 @@ class EdgeFeature:
             self._data = data
             self._dataInv = dataInv  # Must be provided for mmap backend
         elif isinstance(data, tuple) and len(data) == 2:
-            # Legacy tuple format: (data, dataInv)
+            # Dict-based tuple format (.tf loading): (data, dataInv)
             self._is_mmap = False
             self._data = data[0]
             self._dataInv = data[1]
         else:
-            # Legacy dict format
+            # Dict-based format (.tf loading)
             self._is_mmap = False
             self._data = data
             self._dataInv = (
@@ -111,8 +111,8 @@ class EdgeFeature:
     def data(self) -> dict[int, set[int] | dict[int, Any]]:
         """Get forward edge data.
 
-        For legacy backend, returns the dict directly.
-        For mmap backend, materializes CSR to dict (for backward compatibility).
+        For dict-based backend (.tf), returns the dict directly.
+        For mmap backend (.cfm), materializes CSR to dict (for backward compatibility).
         """
         if self._is_mmap:
             return self._materialize_forward()
@@ -122,8 +122,8 @@ class EdgeFeature:
     def dataInv(self) -> dict[int, set[int] | dict[int, Any]]:
         """Get inverse edge data.
 
-        For legacy backend, returns the dict directly.
-        For mmap backend, materializes CSR to dict (for backward compatibility).
+        For dict-based backend (.tf), returns the dict directly.
+        For mmap backend (.cfm), materializes CSR to dict (for backward compatibility).
         """
         if self._is_mmap:
             return self._materialize_inverse()
@@ -285,7 +285,7 @@ class EdgeFeature:
         if edges is None:
             return ()
 
-        # Handle empty edges (for legacy sets/dicts that might be empty)
+        # Handle empty edges (for dict-based sets/dicts that might be empty)
         if hasattr(edges, '__len__') and len(edges) == 0:
             return ()
 
@@ -295,7 +295,7 @@ class EdgeFeature:
             return tuple(sorted(edges.items(), key=lambda mv: rank_key(mv[0])))
         else:
             # For mmap backend: edges is tuple
-            # For legacy backend: edges is set
+            # For dict-based backend (.tf): edges is set
             return tuple(sorted(edges, key=rank_key))
 
     def t(self, n: int) -> tuple[int, ...] | tuple[tuple[int, Any], ...]:
@@ -325,7 +325,7 @@ class EdgeFeature:
         if edges is None:
             return ()
 
-        # Handle empty edges (for legacy sets/dicts that might be empty)
+        # Handle empty edges (for dict-based sets/dicts that might be empty)
         if hasattr(edges, '__len__') and len(edges) == 0:
             return ()
 
@@ -335,7 +335,7 @@ class EdgeFeature:
             return tuple(sorted(edges.items(), key=lambda mv: rank_key(mv[0])))
         else:
             # For mmap backend: edges is tuple
-            # For legacy backend: edges is set
+            # For dict-based backend (.tf): edges is set
             return tuple(sorted(edges, key=rank_key))
 
     def b(self, n: int) -> tuple[int, ...] | tuple[tuple[int, Any], ...]:

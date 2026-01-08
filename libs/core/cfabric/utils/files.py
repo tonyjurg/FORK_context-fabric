@@ -329,13 +329,6 @@ information about the release / commit is stored in a file
 with this name.
 """
 
-EXPRESS_SYNC_LEGACY = [
-    "__release.txt",
-    "__commit.txt",
-]
-"""Legacy names of cache indicator files."""
-
-
 APP_EXPRESS_ZIP = "complete.zip"
 """Name of the zip file with the complete corpus data as attached to a release.
 
@@ -345,12 +338,6 @@ and a part of the corpus is not locally available.
 
 APP_CONFIG = "config.yaml"
 """Name of the config file of a TF app."""
-
-APP_CONFIG_OLD = "config.py"
-"""Name of the config file of a an older, incompatible TF app."""
-
-APP_CODE = "code"
-"""Name of the top-level directory of a legacy TF app."""
 
 APP_APP = "app"
 """Name of the top-level directory of a TF app."""

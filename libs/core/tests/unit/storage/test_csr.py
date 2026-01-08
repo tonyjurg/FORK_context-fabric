@@ -84,3 +84,33 @@ class TestCSRArrayWithValues:
 
         result = csr.get_as_dict(0)
         assert result == {10: 100, 20: 200}
+
+    def test_save_load_roundtrip_int_values(self):
+        """CSRArrayWithValues can save/load int values."""
+        data = {0: {10: 100, 20: 200}, 2: {30: 300}}
+        csr = CSRArrayWithValues.from_dict_of_dicts(data, num_rows=3)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'test'
+            csr.save(str(path))
+            loaded = CSRArrayWithValues.load(str(path))
+
+            assert loaded.get_as_dict(0) == {10: 100, 20: 200}
+            assert loaded.get_as_dict(1) == {}
+            assert loaded.get_as_dict(2) == {30: 300}
+
+    def test_save_load_roundtrip_string_values(self):
+        """CSRArrayWithValues can save/load string values (mmap-able)."""
+        data = {0: {10: 'A0', 20: 'A1'}, 2: {30: 'B0'}}
+        csr = CSRArrayWithValues.from_dict_of_dicts(data, num_rows=3, value_dtype=object)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'test'
+            csr.save(str(path))
+
+            # Must work with mmap_mode='r' (the default for cfm loading)
+            loaded = CSRArrayWithValues.load(str(path), mmap_mode='r')
+
+            assert loaded.get_as_dict(0) == {10: 'A0', 20: 'A1'}
+            assert loaded.get_as_dict(1) == {}
+            assert loaded.get_as_dict(2) == {30: 'B0'}

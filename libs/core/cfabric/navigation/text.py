@@ -443,7 +443,7 @@ class Text:
         if len(self.sectionFeats) != 0 and len(self.sectionTypes) != 0:
             for fName in self.sectionFeatsWithLanguage:
                 # Get metadata from api.F feature (has loaded metadata from .cfm)
-                # or fall back to TF.features (for legacy .tf loading)
+                # or fall back to TF.features (for .tf loading)
                 fFeature = getattr(api.F, fName, None)
                 if fFeature is not None and hasattr(fFeature, 'meta'):
                     meta = fFeature.meta

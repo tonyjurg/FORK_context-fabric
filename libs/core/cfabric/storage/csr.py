@@ -113,17 +113,44 @@ class CSRArrayWithValues(CSRArray):
         return dict(zip(indices, values))
 
     def save(self, path_prefix: str) -> None:
-        """Save to files including values."""
+        """Save to files including values (with string encoding if needed)."""
+        import json
+        from pathlib import Path
+
         np.save(f"{path_prefix}_indptr.npy", self.indptr)
         np.save(f"{path_prefix}_indices.npy", self.indices)
-        np.save(f"{path_prefix}_values.npy", self.values)
+
+        if self.values.dtype == np.object_:
+            # Encode strings as integer indices (object arrays can't be mmap'd)
+            unique_values = list(dict.fromkeys(self.values))  # preserve order, dedupe
+            value_to_idx = {v: i for i, v in enumerate(unique_values)}
+            encoded = np.array([value_to_idx[v] for v in self.values], dtype=np.uint32)
+            np.save(f"{path_prefix}_values.npy", encoded)
+
+            with open(f"{path_prefix}_values_lookup.json", 'w') as f:
+                json.dump(unique_values, f)
+        else:
+            np.save(f"{path_prefix}_values.npy", self.values)
 
     @classmethod
     def load(cls, path_prefix: str, mmap_mode: str = 'r') -> CSRArrayWithValues:
-        """Load from files."""
+        """Load from files (with string decoding if needed)."""
+        import json
+        from pathlib import Path
+
         indptr = np.load(f"{path_prefix}_indptr.npy", mmap_mode=mmap_mode)
         indices = np.load(f"{path_prefix}_indices.npy", mmap_mode=mmap_mode)
-        values = np.load(f"{path_prefix}_values.npy", mmap_mode=mmap_mode)
+
+        lookup_path = Path(f"{path_prefix}_values_lookup.json")
+        if lookup_path.exists():
+            # String values: load lookup and decode
+            encoded = np.load(f"{path_prefix}_values.npy", mmap_mode=mmap_mode)
+            with open(lookup_path) as f:
+                lookup = json.load(f)
+            values = np.array([lookup[i] for i in encoded], dtype=object)
+        else:
+            values = np.load(f"{path_prefix}_values.npy", mmap_mode=mmap_mode)
+
         return cls(indptr, indices, values)
 
     @classmethod

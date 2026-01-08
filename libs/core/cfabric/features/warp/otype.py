@@ -6,8 +6,8 @@ has an optimised representation. Since it is a large feature and present
 in any TF dataset, this pays off.
 
 Supports two backends:
-- Legacy tuple format: data = (type_tuple, maxSlot, maxNode, slotType)
-- Mmap numpy array: data = numpy uint8/uint16 array, with type_list parameter
+- Dict-based tuple format (.tf loading): data = (type_tuple, maxSlot, maxNode, slotType)
+- Mmap numpy array (.cfm loading): data = numpy uint8/uint16 array, with type_list parameter
 
 """
 
@@ -32,7 +32,7 @@ class OtypeFeature:
         data: tuple[tuple[str, ...], int, int, str] | np.ndarray,
         type_list: list[str] | dict[str, Any] | None = None,
     ) -> None:
-        """Initialize OtypeFeature with either legacy or mmap backend.
+        """Initialize OtypeFeature with either dict-based or mmap backend.
 
         Parameters
         ----------
@@ -42,7 +42,7 @@ class OtypeFeature:
             Feature metadata
         data : tuple or np.ndarray
             Either:
-            - Legacy: tuple (type_tuple, maxSlot, maxNode, slotType)
+            - Dict-based (.tf): tuple (type_tuple, maxSlot, maxNode, slotType)
             - Mmap: numpy uint8/uint16 array of type indices for non-slot nodes
         type_list : list, optional
             When using mmap backend, maps type indices to type strings.
@@ -83,7 +83,7 @@ class OtypeFeature:
                 self.maxNode = None
                 self.slotType = None
         else:
-            # Legacy tuple format
+            # Dict-based tuple format (.tf loading)
             assert isinstance(data, tuple)
             self._data = data[0]
             self.maxSlot = data[1]
@@ -105,10 +105,10 @@ class OtypeFeature:
 
     @property
     def data(self) -> tuple[str, ...] | np.ndarray:
-        """Legacy access to raw type data.
+        """Access to raw type data.
 
-        For legacy backend, returns the type tuple.
-        For mmap backend, returns the numpy array.
+        For dict-based backend (.tf), returns the type tuple.
+        For mmap backend (.cfm), returns the numpy array.
         """
         return self._data
 
@@ -136,7 +136,7 @@ class OtypeFeature:
             for n in range(maxSlot + 1, maxNode + 1):
                 yield (n, type_list[data[n - shift]])
         else:
-            # Legacy backend: direct string access
+            # Dict-based backend (.tf): direct string access
             data = self._data
             for n in range(maxSlot + 1, maxNode + 1):
                 yield (n, data[n - shift])

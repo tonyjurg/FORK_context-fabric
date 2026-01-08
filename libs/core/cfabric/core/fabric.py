@@ -348,7 +348,9 @@ class Fabric:
                         logger.info("All features loaded from .cfm format")
                         return api
                 except Exception as e:
-                    logger.debug(f".cfm load failed, falling back to .tf: {e}")
+                    logger.error(f".cfm cache exists but failed to load: {e}")
+                    logger.error("Delete the .cfm directory and try again, or report this bug.")
+                    raise
 
         self.sectionsOK = True
         self.structureOK = True

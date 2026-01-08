@@ -184,26 +184,26 @@ class TestLoadCfm:
         assert len(api.C.order.data) > 0
 
 
-class TestCfmVsLegacyEquivalence:
-    """Test that .cfm produces same results as legacy loading."""
+class TestCfmVsTfEquivalence:
+    """Test that .cfm produces same results as .tf loading."""
 
     @pytest.fixture
     def both_apis(self):
-        """Load corpus via both legacy and CFM methods."""
+        """Load corpus via both .tf and .cfm methods."""
         mini_corpus = Path(__file__).parent.parent.parent / 'fixtures' / 'mini_corpus'
         with tempfile.TemporaryDirectory() as tmpdir:
             test_dir = Path(tmpdir) / 'mini_corpus'
             shutil.copytree(mini_corpus, test_dir)
 
-            # Legacy load
-            TF_legacy = Fabric(
+            # Load from .tf (dict-based backend)
+            TF_source = Fabric(
                 locations=[str(test_dir.parent)],
                 modules=['mini_corpus'],
                 silent='deep'
             )
-            api_legacy = TF_legacy.load('word pos number parent')
+            api_tf = TF_source.load('word pos number parent')
 
-            # Compile and CFM load
+            # Compile and load from .cfm (mmap-based backend)
             TF_cfm = Fabric(
                 locations=[str(test_dir.parent)],
                 modules=['mini_corpus'],
@@ -212,21 +212,21 @@ class TestCfmVsLegacyEquivalence:
             TF_cfm.compile()
             api_cfm = TF_cfm.load("")
 
-            yield api_legacy, api_cfm
+            yield api_tf, api_cfm
 
     def test_otype_equivalence(self, both_apis):
-        """otype values match between legacy and CFM."""
-        api_legacy, api_cfm = both_apis
+        """otype values match between .tf and .cfm loading."""
+        api_tf, api_cfm = both_apis
 
         for n in range(1, 9):
-            assert api_legacy.F.otype.v(n) == api_cfm.F.otype.v(n)
+            assert api_tf.F.otype.v(n) == api_cfm.F.otype.v(n)
 
     def test_word_feature_equivalence(self, both_apis):
-        """word feature values match between legacy and CFM."""
-        api_legacy, api_cfm = both_apis
+        """word feature values match between .tf and .cfm loading."""
+        api_tf, api_cfm = both_apis
 
         for n in range(1, 6):  # slots only
-            assert api_legacy.F.word.v(n) == api_cfm.F.word.v(n)
+            assert api_tf.F.word.v(n) == api_cfm.F.word.v(n)
 
 
 class TestCfmLocalityApi:
@@ -773,3 +773,63 @@ class TestCfmSectionsCycle:
                         cached_node = api_cached.T.nodeFromSection(section)
                         assert fresh_node == cached_node, \
                             f"Section {section}: fresh={fresh_node} cached={cached_node}"
+
+
+class TestCfmEdgeStringValues:
+    """Test that edge features with string values work after cfm reload.
+
+    This tests the bug where edges with @edgeValues + @valueType=str
+    fail to load from .cfm cache due to object dtype can't be mmap'd.
+    """
+
+    @pytest.fixture
+    def fresh_and_cached_apis(self):
+        """Compile and reload to test string edge values."""
+        mini_corpus = Path(__file__).parent.parent.parent / 'fixtures' / 'mini_corpus'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_dir = Path(tmpdir) / 'mini_corpus'
+            shutil.copytree(mini_corpus, test_dir)
+
+            cfm_dir = test_dir / '.cfm'
+            if cfm_dir.exists():
+                shutil.rmtree(cfm_dir)
+
+            # Stage 1: Fresh compile (explicitly load relation edge feature)
+            TF1 = Fabric(
+                locations=[str(test_dir.parent)],
+                modules=['mini_corpus'],
+                silent='deep'
+            )
+            api_fresh = TF1.load('relation')
+            del TF1
+
+            # Stage 2: Load from cache
+            TF2 = Fabric(
+                locations=[str(test_dir.parent)],
+                modules=['mini_corpus'],
+                silent='deep'
+            )
+            api_cached = TF2.load('')
+
+            yield api_fresh, api_cached
+
+    def test_string_edge_values_after_reload(self, fresh_and_cached_apis):
+        """Edge string values are preserved after cache reload."""
+        api_fresh, api_cached = fresh_and_cached_apis
+
+        # Edge 1->6 should have value 'subject'
+        assert dict(api_cached.E.relation.f(1))[6] == 'subject'
+        # Edge 2->6 should have value 'predicate'
+        assert dict(api_cached.E.relation.f(2))[6] == 'predicate'
+        # Edge 3->6 should have value 'object'
+        assert dict(api_cached.E.relation.f(3))[6] == 'object'
+
+    def test_string_edge_values_consistent(self, fresh_and_cached_apis):
+        """Edge string values match between fresh and cached load."""
+        api_fresh, api_cached = fresh_and_cached_apis
+
+        # Check all edges match
+        for n in range(1, 6):
+            fresh_edges = dict(api_fresh.E.relation.f(n))
+            cached_edges = dict(api_cached.E.relation.f(n))
+            assert fresh_edges == cached_edges, f"Node {n}: {fresh_edges} != {cached_edges}"

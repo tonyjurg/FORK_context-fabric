@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-01-08 ([ck])
+
+### Fixed
+- Edge features with string values (`@edgeValues` + `@valueType=str`) now compile and load correctly from `.cfm` cache
+- String edge values are encoded as integer indices with JSON lookup to enable memory-mapping
+- Removed silent fallback from corrupted `.cfm` to `.tf` loading - now fails loudly with actionable error message
+
+### Changed
+- Replaced misleading "legacy" terminology with "dict-based" (.tf loading) vs "mmap-based" (.cfm loading) throughout codebase
+- Removed unused constants from TF fork: `EXPRESS_SYNC_LEGACY`, `APP_CONFIG_OLD`, `APP_CODE`
+
 ## [0.4.0] - 2026-01-07 ([ck])
 
 ### Added

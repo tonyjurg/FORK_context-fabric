@@ -6,8 +6,8 @@ has an optimised representation. Since it is a large feature and present
 in any TF dataset, this pays off.
 
 Supports two backends:
-- Legacy tuple format: data = (slots_tuple, maxSlot, maxNode)
-- CSR array format: data = CSRArray instance
+- Dict-based tuple format (.tf loading): data = (slots_tuple, maxSlot, maxNode)
+- CSR array format (.cfm loading): data = CSRArray instance
 
 """
 
@@ -31,7 +31,7 @@ class OslotsFeature:
         maxSlot: int | None = None,
         maxNode: int | None = None,
     ) -> None:
-        """Initialize OslotsFeature with either legacy or CSR backend.
+        """Initialize OslotsFeature with either dict-based or CSR backend.
 
         Parameters
         ----------
@@ -41,7 +41,7 @@ class OslotsFeature:
             Feature metadata
         data : tuple or CSRArray
             Either:
-            - Legacy: tuple (slots_tuple, maxSlot, maxNode)
+            - Dict-based (.tf): tuple (slots_tuple, maxSlot, maxNode)
             - CSR: CSRArray instance containing slot data for non-slot nodes
         maxSlot : int, optional
             When using CSR backend, the maximum slot node number.
@@ -71,7 +71,7 @@ class OslotsFeature:
             self.maxSlot = maxSlot
             self.maxNode = maxNode
         else:
-            # Legacy tuple format
+            # Dict-based tuple format (.tf loading)
             assert isinstance(data, tuple)
             self._data = data[0]
             self.maxSlot = data[1]
@@ -79,10 +79,10 @@ class OslotsFeature:
 
     @property
     def data(self) -> tuple[tuple[int, ...], ...] | CSRArray:
-        """Legacy access to raw slots data.
+        """Access to raw slots data.
 
-        For legacy backend, returns the slots tuple.
-        For CSR backend, returns the CSRArray.
+        For dict-based backend (.tf), returns the slots tuple.
+        For CSR backend (.cfm), returns the CSRArray.
         """
         return self._data
 
@@ -104,7 +104,7 @@ class OslotsFeature:
             for n in range(maxSlot + 1, maxNode + 1):
                 yield (n, data.get_as_tuple(n - shift))
         else:
-            # Legacy backend: direct tuple access
+            # Dict-based backend (.tf): direct tuple access
             data = self._data
             for n in range(maxSlot + 1, maxNode + 1):
                 yield (n, data[n - shift])
