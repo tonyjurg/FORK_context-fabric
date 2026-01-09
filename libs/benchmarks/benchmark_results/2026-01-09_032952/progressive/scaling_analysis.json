@@ -1,0 +1,18 @@
+{
+  "tf": {
+    "implementation": "TF",
+    "slope_mb_per_corpus": 677.4789772727273,
+    "intercept_mb": -1430.6256250000001,
+    "r_squared": 0.8716955703689028,
+    "predicted_10_corpora_mb": 5344.164147727273,
+    "predicted_50_corpora_mb": 32443.323238636367
+  },
+  "cf": {
+    "implementation": "CF",
+    "slope_mb_per_corpus": 126.9857765151515,
+    "intercept_mb": -212.53520833333317,
+    "r_squared": 0.8386119559363274,
+    "predicted_10_corpora_mb": 1057.3225568181817,
+    "predicted_50_corpora_mb": 6136.753617424242
+  }
+}

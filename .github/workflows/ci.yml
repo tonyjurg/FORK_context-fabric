@@ -40,3 +40,21 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Run tests
         run: pytest tests/ -v
+
+  test-benchmarks:
+    name: Test cfabric-benchmarks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libs/benchmarks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install core package
+        run: pip install -e ../core
+      - name: Install benchmarks package with dev dependencies
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest tests/ -v

@@ -1,0 +1,5 @@
+corpus,mode,tf_memory_mean_mb,tf_memory_std_mb,cf_memory_mean_mb,cf_memory_std_mb,reduction_percent
+bhsa,single,6313.09375,0.0,523.09375,0.0,91.7141456991669
+bhsa,load_time,7.017436666414142,0.0,0.8627869579941034,0.0,
+cuc,single,164.703125,0.0,131.453125,0.0,20.187837966037378
+cuc,load_time,0.016586707904934883,0.0,0.021431833505630493,0.0,

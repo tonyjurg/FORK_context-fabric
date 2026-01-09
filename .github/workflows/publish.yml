@@ -5,6 +5,7 @@ on:
     tags:
       - 'core-v*'
       - 'mcp-v*'
+      - 'benchmarks-v*'
 
 jobs:
   publish-core:
@@ -40,6 +41,33 @@ jobs:
     defaults:
       run:
         working-directory: libs/mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          pip install build twine
+          pip install -e ../core
+          pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest tests/
+      - name: Build package
+        run: python -m build
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
+
+  publish-benchmarks:
+    name: Publish cfabric-benchmarks
+    if: startsWith(github.ref, 'refs/tags/benchmarks-v')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libs/benchmarks
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

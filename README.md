@@ -33,13 +33,13 @@ Built on the same proven graph-based data model, Context-Fabric introduces a mem
 
 Text-Fabric loads entire corpora into memory—effective for single-user research, but each parallel worker duplicates that memory footprint. Context-Fabric's memory-mapped arrays change the equation:
 
-| Scenario | Text-Fabric | Context-Fabric | Improvement |
-|----------|-------------|----------------|-------------|
-| Single process | 5.2 GB | 300 MB | 94% less |
-| 4 workers (spawn) | 6.0 GB | 1.2 GB | 79% less |
-| 4 workers (fork) | 6.3 GB | 397 MB | **94% less** |
+| Scenario | Memory Reduction |
+|----------|------------------|
+| Single process | 65% less |
+| 4 workers (spawn) | 62% less |
+| 4 workers (fork) | 62% less |
 
-*Benchmarks on BHSA Hebrew Bible corpus (1.4M nodes). Memory measured as total RSS after loading from cache.*
+*Mean reduction across 10 corpora. Memory measured as total RSS after loading from cache.*
 
 Multiple workers share the same memory-mapped data instead of each loading a copy. This architecture unlocks production use cases that were previously impractical.
 
@@ -122,23 +122,24 @@ clause
 
 Context-Fabric trades **one-time compilation cost** for **dramatic runtime efficiency**. Compile once, benefit forever.
 
-| Metric | Text-Fabric | Context-Fabric |
-|--------|-------------|----------------|
-| Load time | 7.9s | 0.7s (11x faster) |
-| Memory | 6.3 GB | 305 MB (95% less) |
-| Compile time | 8s | 91s (one-time cost) |
-| Cache size | 138 MB | 859 MB |
+| Metric | Mean Improvement |
+|--------|------------------|
+| Load time | 3.5x faster |
+| Memory (single) | 65% less |
+| Memory (spawn) | 62% less |
+| Memory (fork) | 62% less |
 
-The larger cache enables memory-mapped access—no deserialization, instant loads, shared memory across workers.
+*Mean across 10 corpora. The larger cache enables memory-mapped access—no deserialization, instant loads, shared memory across workers.*
 
 <p align="center">
-  <img src="benchmarks/results/performance_comparison.png" alt="Performance Comparison" width="700">
+  <img src="libs/benchmarks/benchmark_results/2026-01-09_032952/fig_memory_multicorpus.png" alt="Memory Comparison Across Corpora" width="700">
 </p>
 
 Run benchmarks yourself:
 
 ```bash
-python benchmarks/compare_performance.py --source path/to/tf/data --workers 4
+pip install context-fabric[benchmarks]
+cfabric-bench memory --corpus path/to/corpus
 ```
 
 ---
@@ -149,11 +150,13 @@ python benchmarks/compare_performance.py --source path/to/tf/data --workers 4
 |---------|-------------|
 | [context-fabric](libs/core/) | Core graph engine |
 | [cfabric-mcp](libs/mcp/) | MCP server for AI agents |
+| [cfabric-benchmarks](libs/benchmarks/) | Performance benchmarking suite |
 
 ## Links
 
 - [Core Changelog](libs/core/CHANGELOG.md)
 - [MCP Changelog](libs/mcp/CHANGELOG.md)
+- [Benchmarks Changelog](libs/benchmarks/CHANGELOG.md)
 - [Testing Guide](TESTING.md)
 
 ## Authors

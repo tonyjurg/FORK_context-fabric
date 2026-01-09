@@ -1,5 +1,0 @@
-Metric,Text-Fabric,Context-Fabric,CF Improvement
-Compile Time (s),7.999553542584181,91.45170529186726,11.43x slower
-Load Time (s),7.930362166836858,0.7321439580991864,10.83x faster
-Memory Used (MB),6280.390625,304.71875,95.1% less
-Cache Size (MB),137.9158821105957,859.2221536636353,6.2x larger

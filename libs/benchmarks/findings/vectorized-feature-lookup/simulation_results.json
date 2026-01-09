@@ -1,0 +1,143 @@
+{
+  "corpus": "BHSA",
+  "total_words": 426590,
+  "results": [
+    {
+      "name": "sp=verb",
+      "value": "verb",
+      "node_count": 426590,
+      "result_count": 73710,
+      "looping_mean_ms": 147.62,
+      "looping_std_ms": 8.01,
+      "vectorized_mean_ms": 17.64,
+      "vectorized_std_ms": 0.21,
+      "speedup": 8.37,
+      "iterations": 10
+    },
+    {
+      "name": "sp=subs",
+      "value": "subs",
+      "node_count": 426590,
+      "result_count": 121509,
+      "looping_mean_ms": 148.3,
+      "looping_std_ms": 2.66,
+      "vectorized_mean_ms": 21.97,
+      "vectorized_std_ms": 0.9,
+      "speedup": 6.75,
+      "iterations": 10
+    },
+    {
+      "name": "sp=art",
+      "value": "art",
+      "node_count": 426590,
+      "result_count": 30386,
+      "looping_mean_ms": 141.89,
+      "looping_std_ms": 1.8,
+      "vectorized_mean_ms": 15.09,
+      "vectorized_std_ms": 0.41,
+      "speedup": 9.4,
+      "iterations": 10
+    },
+    {
+      "name": "sp=prep",
+      "value": "prep",
+      "node_count": 426590,
+      "result_count": 73273,
+      "looping_mean_ms": 143.65,
+      "looping_std_ms": 0.62,
+      "vectorized_mean_ms": 17.54,
+      "vectorized_std_ms": 0.43,
+      "speedup": 8.19,
+      "iterations": 10
+    },
+    {
+      "name": "sp=conj",
+      "value": "conj",
+      "node_count": 426590,
+      "result_count": 62722,
+      "looping_mean_ms": 144.76,
+      "looping_std_ms": 1.08,
+      "vectorized_mean_ms": 17.51,
+      "vectorized_std_ms": 0.65,
+      "speedup": 8.27,
+      "iterations": 10
+    },
+    {
+      "name": "vt=perf",
+      "value": "perf",
+      "node_count": 426590,
+      "result_count": 21129,
+      "looping_mean_ms": 152.83,
+      "looping_std_ms": 14.02,
+      "vectorized_mean_ms": 15.15,
+      "vectorized_std_ms": 0.42,
+      "speedup": 10.09,
+      "iterations": 10
+    },
+    {
+      "name": "vt=impf",
+      "value": "impf",
+      "node_count": 426590,
+      "result_count": 16099,
+      "looping_mean_ms": 141.25,
+      "looping_std_ms": 1.82,
+      "vectorized_mean_ms": 13.75,
+      "vectorized_std_ms": 0.23,
+      "speedup": 10.27,
+      "iterations": 10
+    },
+    {
+      "name": "gn=m",
+      "value": "m",
+      "node_count": 426590,
+      "result_count": 164176,
+      "looping_mean_ms": 147.28,
+      "looping_std_ms": 0.48,
+      "vectorized_mean_ms": 24.93,
+      "vectorized_std_ms": 0.82,
+      "speedup": 5.91,
+      "iterations": 10
+    },
+    {
+      "name": "gn=f",
+      "value": "f",
+      "node_count": 426590,
+      "result_count": 36721,
+      "looping_mean_ms": 142.41,
+      "looping_std_ms": 0.52,
+      "vectorized_mean_ms": 15.63,
+      "vectorized_std_ms": 0.39,
+      "speedup": 9.11,
+      "iterations": 10
+    },
+    {
+      "name": "nu=sg",
+      "value": "sg",
+      "node_count": 426590,
+      "result_count": 180110,
+      "looping_mean_ms": 153.1,
+      "looping_std_ms": 3.81,
+      "vectorized_mean_ms": 28.28,
+      "vectorized_std_ms": 6.95,
+      "speedup": 5.41,
+      "iterations": 10
+    },
+    {
+      "name": "nu=pl",
+      "value": "pl",
+      "node_count": 426590,
+      "result_count": 54941,
+      "looping_mean_ms": 143.62,
+      "looping_std_ms": 0.66,
+      "vectorized_mean_ms": 17.06,
+      "vectorized_std_ms": 0.56,
+      "speedup": 8.42,
+      "iterations": 10
+    }
+  ],
+  "summary": {
+    "average_speedup": 8.2,
+    "min_speedup": 5.41,
+    "max_speedup": 10.27
+  }
+}

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "lex_001",
+    "category": "lexical",
+    "template": "word sp=verb",
+    "description": "All verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_002",
+    "category": "lexical",
+    "template": "word sp=subs",
+    "description": "All substantives (nouns)",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_003",
+    "category": "lexical",
+    "template": "word sp=prep",
+    "description": "All prepositions",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_004",
+    "category": "lexical",
+    "template": "word sp=conj",
+    "description": "All conjunctions",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_005",
+    "category": "lexical",
+    "template": "word sp=nmpr",
+    "description": "All proper nouns",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_006",
+    "category": "lexical",
+    "template": "word sp=art",
+    "description": "All articles",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_007",
+    "category": "lexical",
+    "template": "word sp=adjv",
+    "description": "All adjectives",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_008",
+    "category": "lexical",
+    "template": "word sp=advb",
+    "description": "All adverbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_009",
+    "category": "lexical",
+    "template": "word vt=perf",
+    "description": "Perfect tense verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_010",
+    "category": "lexical",
+    "template": "word vt=impf",
+    "description": "Imperfect tense verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_011",
+    "category": "lexical",
+    "template": "word vt=wayq",
+    "description": "Wayyiqtol verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_012",
+    "category": "lexical",
+    "template": "word vt=impv",
+    "description": "Imperative verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_013",
+    "category": "lexical",
+    "template": "word vt=ptca",
+    "description": "Active participles",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_014",
+    "category": "lexical",
+    "template": "word vt=infc",
+    "description": "Infinitive construct",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_015",
+    "category": "lexical",
+    "template": "word vs=qal",
+    "description": "Qal stem verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_016",
+    "category": "lexical",
+    "template": "word vs=piel",
+    "description": "Piel stem verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_017",
+    "category": "lexical",
+    "template": "word vs=hif",
+    "description": "Hiphil stem verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_018",
+    "category": "lexical",
+    "template": "word vs=nif",
+    "description": "Niphal stem verbs",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_019",
+    "category": "lexical",
+    "template": "word gn=m",
+    "description": "Masculine words",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  },
+  {
+    "id": "lex_020",
+    "category": "lexical",
+    "template": "word gn=f",
+    "description": "Feminine words",
+    "expected_complexity": "low",
+    "validated": true,
+    "validation_error": null
+  }
+]
