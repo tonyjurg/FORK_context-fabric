@@ -1,4 +1,4 @@
-TEX = 2025-01-memory-benchmark-tf-vs-cf
+TEX = intro-to-cf
 PDF = $(TEX).pdf
 
 .PHONY: all clean
