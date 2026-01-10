@@ -163,7 +163,7 @@ cfabric-bench memory --corpus path/to/corpus
 
 If you use Context-Fabric in your research, please cite:
 
-> Kingham, Cody. "Carrying Text-Fabric Forward: Context-Fabric and the Scalable Corpus Ecosystem." January 2026.
+> Kingham, Cody. ["Carrying Text-Fabric Forward: Context-Fabric and the Scalable Corpus Ecosystem."](https://github.com/Context-Fabric/context-fabric/blob/master/docs/intro-to-cf/intro-to-cf.pdf) January 2026.
 
 ## Authors
 
