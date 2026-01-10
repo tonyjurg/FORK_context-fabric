@@ -2,6 +2,22 @@
 
 Benchmark suite for comparing Context-Fabric (CF) vs Text-Fabric (TF) performance across memory usage, query latency, and multi-corpus scaling.
 
+## Latest Results
+
+See the full benchmark results in [`benchmark_results/2026-01-09_032952/`](benchmark_results/2026-01-09_032952/):
+
+| Benchmark | Description |
+|-----------|-------------|
+| **Memory** | Single-process, spawn, and fork memory usage across all 10 corpora |
+| **Latency** | Search query execution times using 50 curated BHSA patterns |
+| **Progressive** | Multi-corpus scaling analysis with linear regression |
+
+Key files:
+- [`environment.json`](benchmark_results/2026-01-09_032952/environment.json) - Test environment (hardware/software)
+- [`memory/cross_corpus_summary.csv`](benchmark_results/2026-01-09_032952/memory/cross_corpus_summary.csv) - Memory comparison across corpora
+- [`latency/statistics.csv`](benchmark_results/2026-01-09_032952/latency/statistics.csv) - Query latency statistics
+- [`progressive/scaling_analysis.json`](benchmark_results/2026-01-09_032952/progressive/scaling_analysis.json) - Scaling regression analysis
+
 ## Prerequisites
 
 ### 1. Activate the Virtual Environment
