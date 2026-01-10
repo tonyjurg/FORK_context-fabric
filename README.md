@@ -15,37 +15,56 @@
   <a href="https://github.com/Context-Fabric/context-fabric/blob/master/LICENSE"><img src="https://img.shields.io/github/license/Context-Fabric/context-fabric" alt="License"></a>
 </p>
 
----
+<p align="center">
+  <img src="assets/demo-terminal.gif" alt="Context-Fabric MCP Server Demo" width="700">
+</p>
 
-## The Next Chapter
-
-In 2016, [Text-Fabric](https://github.com/annotation/text-fabric) changed how researchers work with annotated text. Its standoff data model, data science focus, and Python-native processing brought computational analysis to ancient texts, manuscripts, and linguistic corpora worldwide.
-
-**Context-Fabric carries that legacy forward into the AI era.**
-
-Built on the same proven graph-based data model, Context-Fabric introduces a memory-mapped architecture that enables what Text-Fabric couldn't: true parallel processing for production deployments. This means corpus analysis can now power REST APIs, multi-worker services, and—crucially—AI agent tools via the Model Context Protocol (MCP).
+<p align="center">
+  <em>AI agents analyzing ancient Hebrew text via the Model Context Protocol</em>
+</p>
 
 ---
 
-## Why Context-Fabric?
+## Overview
 
-### Built for Parallelization
+Context-Fabric brings corpus analysis into the AI era. Built on the proven [Text-Fabric](https://github.com/annotation/text-fabric) data model, it introduces a memory-mapped architecture enabling parallel processing for production deployments—REST APIs, multi-worker services, and AI agent tools via MCP.
 
-Text-Fabric loads entire corpora into memory—effective for single-user research, but each parallel worker duplicates that memory footprint. Context-Fabric's memory-mapped arrays change the equation:
+<table>
+<tr>
+<td width="50%">
 
-| Scenario | Memory Reduction |
-|----------|------------------|
-| Single process | 65% less |
-| 4 workers (spawn) | 62% less |
-| 4 workers (fork) | 62% less |
+### Built for Production
+Memory-mapped arrays enable true parallelization. Multiple workers share data instead of duplicating it.
 
-*Mean reduction across 10 corpora. Memory measured as total RSS after loading from cache.*
+</td>
+<td width="50%">
 
-Multiple workers share the same memory-mapped data instead of each loading a copy. This architecture unlocks production use cases that were previously impractical.
+### AI-Native
+MCP server exposes corpus operations to Claude, GPT, and other LLM-powered tools.
 
-### Ready for AI Agents
+</td>
+</tr>
+<tr>
+<td width="50%">
 
-Context-Fabric includes **cfabric-mcp**, a Model Context Protocol server that exposes corpus operations to AI agents. Claude, GPT, and other LLM-powered tools can now search, navigate, and analyze annotated text corpora directly.
+### Powerful Data Model
+Standoff annotation, graph traversal, pattern search, and arbitrary feature annotations.
+
+</td>
+<td width="50%">
+
+### Dramatic Efficiency
+3.5x faster loads, 65% less memory in single process, 62% less with parallel workers.
+
+</td>
+</tr>
+</table>
+
+---
+
+## MCP Server for AI Agents
+
+Context-Fabric includes **cfabric-mcp**, a Model Context Protocol server that exposes corpus operations to AI agents:
 
 ```bash
 # Start the MCP server
@@ -59,14 +78,19 @@ The server provides 10 tools for discovery, search, and data access—designed f
 
 → [MCP Server Documentation](libs/mcp/README.md)
 
-### Same Powerful Data Model
+---
 
-Context-Fabric preserves Text-Fabric's core strengths:
+## Memory Efficiency
 
-- **Standoff annotation**: Layers of analysis without modifying source text
-- **Graph traversal**: Navigate hierarchical structures (words → clauses → sentences → documents)
-- **Pattern search**: Find complex linguistic patterns with structural templates
-- **Feature system**: Arbitrary annotations on any node or edge
+Text-Fabric loads entire corpora into memory—effective for single-user research, but each parallel worker duplicates that memory footprint. Context-Fabric's memory-mapped arrays change the equation:
+
+| Scenario | Memory Reduction |
+|----------|------------------|
+| Single process | 65% less |
+| 4 workers (spawn) | 62% less |
+| 4 workers (fork) | 62% less |
+
+*Mean reduction across 10 corpora. Memory measured as total RSS after loading from cache.*
 
 ---
 
