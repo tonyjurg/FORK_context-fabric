@@ -81,16 +81,11 @@ class TestEnvironment(BaseModel):
 def _get_tf_version() -> str:
     """Get Text-Fabric version."""
     try:
-        from tf.fabric import Fabric
+        from tf.parameters import VERSION
 
-        return getattr(Fabric, "__version__", "unknown")
+        return VERSION
     except ImportError:
-        try:
-            import tf
-
-            return getattr(tf, "__version__", "unknown")
-        except (ImportError, AttributeError):
-            return "unknown"
+        return "unknown"
 
 
 def _get_cf_version() -> str:

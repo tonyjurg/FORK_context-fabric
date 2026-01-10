@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cfabric-benchmarks"
-version = "0.1.0"
+version = "0.1.1"
 description = "Comprehensive benchmarking suite for Context-Fabric vs Text-Fabric"
 readme = "README.md"
 license = {text = "MIT"}
