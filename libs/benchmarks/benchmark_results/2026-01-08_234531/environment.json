@@ -14,7 +14,7 @@
     "python_version": "3.13.11",
     "numpy_version": "2.4.0",
     "psutil_version": "7.2.1",
-    "text_fabric_version": "unknown",
+    "text_fabric_version": "13.0.19",
     "context_fabric_version": "0.4.1"
   }
 }
