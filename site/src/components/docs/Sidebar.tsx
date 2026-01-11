@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem, NavSection } from "@/types/docs";
 import { clsx } from "clsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 function ChevronIcon({ isOpen, className }: { isOpen: boolean; className?: string }) {
   return (
@@ -28,14 +28,52 @@ function ChevronIcon({ isOpen, className }: { isOpen: boolean; className?: strin
   );
 }
 
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={clsx("w-6 h-6", className)}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 6h16M4 12h16M4 18h16"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={clsx("w-6 h-6", className)}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  );
+}
+
 function NavItemComponent({
   item,
   currentPath,
   depth = 0,
+  onNavigate,
 }: {
   item: NavItem;
   currentPath: string;
   depth?: number;
+  onNavigate?: () => void;
 }) {
   const isExternal = item.path.startsWith("http");
   const isActive = !isExternal && currentPath === item.path;
@@ -53,6 +91,12 @@ function NavItemComponent({
   );
 
   const linkStyle = { paddingLeft: `${depth * 12 + 8}px` };
+
+  const handleClick = () => {
+    if (onNavigate && !isExternal) {
+      onNavigate();
+    }
+  };
 
   return (
     <li>
@@ -82,6 +126,7 @@ function NavItemComponent({
             href={item.path}
             className={linkClasses}
             style={linkStyle}
+            onClick={handleClick}
           >
             {item.title}
           </Link>
@@ -96,6 +141,7 @@ function NavItemComponent({
               item={child}
               currentPath={currentPath}
               depth={depth + 1}
+              onNavigate={onNavigate}
             />
           ))}
         </ul>
@@ -108,12 +154,13 @@ function CollapsibleSection({
   section,
   currentPath,
   defaultOpen = true,
+  onNavigate,
 }: {
   section: NavSection;
   currentPath: string;
   defaultOpen?: boolean;
+  onNavigate?: () => void;
 }) {
-  // Check if any item in this section is active
   const hasActiveItem = section.items.some(
     (item) =>
       currentPath === item.path ||
@@ -123,7 +170,6 @@ function CollapsibleSection({
 
   const [isOpen, setIsOpen] = useState(defaultOpen || hasActiveItem);
 
-  // Keep section open if it contains the active page
   useEffect(() => {
     if (hasActiveItem) {
       setIsOpen(true);
@@ -152,10 +198,35 @@ function CollapsibleSection({
               key={item.path}
               item={item}
               currentPath={currentPath}
+              onNavigate={onNavigate}
             />
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function SidebarContent({
+  navigation,
+  currentPath,
+  onNavigate
+}: {
+  navigation: NavSection[];
+  currentPath: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="p-4 space-y-4">
+      {navigation.map((section, index) => (
+        <CollapsibleSection
+          key={section.title}
+          section={section}
+          currentPath={currentPath}
+          defaultOpen={index < 3}
+          onNavigate={onNavigate}
+        />
+      ))}
     </div>
   );
 }
@@ -166,19 +237,79 @@ interface SidebarProps {
 
 export function Sidebar({ navigation }: SidebarProps) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Close on escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  // Lock body scroll when mobile menu open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   return (
-    <nav className="w-64 flex-shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-alt)] h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
-      <div className="p-4 space-y-4">
-        {navigation.map((section, index) => (
-          <CollapsibleSection
-            key={section.title}
-            section={section}
+    <>
+      {/* Mobile: FAB to open menu */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed bottom-4 right-4 z-40 p-3 bg-[var(--color-accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-opacity"
+        aria-label="Open navigation"
+      >
+        <MenuIcon />
+      </button>
+
+      {/* Mobile: Overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={closeMobile}
+        />
+      )}
+
+      {/* Mobile: Slide-out drawer */}
+      <div
+        className={clsx(
+          "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-[var(--color-bg-alt)] border-r border-[var(--color-border)] transform transition-transform duration-300 ease-in-out",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
+          <span className="font-semibold text-[var(--color-text)]">Documentation</span>
+          <button
+            onClick={closeMobile}
+            className="p-2 hover:bg-[var(--color-border)] rounded"
+            aria-label="Close navigation"
+          >
+            <CloseIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto h-[calc(100%-60px)]">
+          <SidebarContent
+            navigation={navigation}
             currentPath={pathname}
-            defaultOpen={index < 3}
+            onNavigate={closeMobile}
           />
-        ))}
+        </div>
       </div>
-    </nav>
+
+      {/* Desktop: Static sidebar */}
+      <nav className="hidden lg:block w-64 flex-shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-alt)] h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
+        <SidebarContent navigation={navigation} currentPath={pathname} />
+      </nav>
+    </>
   );
 }

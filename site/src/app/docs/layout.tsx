@@ -13,8 +13,8 @@ export default function DocsLayout({
       <ScrollToTop />
       <div className="flex min-h-screen pt-16">
         <Sidebar navigation={fullNavigation} />
-        <main className="flex-1 p-8 overflow-auto bg-[var(--color-bg)]">
-          <div className="max-w-4xl">{children}</div>
+        <main className="flex-1 p-4 md:p-8 overflow-auto bg-[var(--color-bg)] w-full">
+          <div className="max-w-4xl mx-auto lg:mx-0">{children}</div>
         </main>
       </div>
     </>
