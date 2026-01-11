@@ -490,7 +490,7 @@ Get search syntax documentation (section-based).
 **Response:**
 ```json
 {
-  "summary": "Templates: node_type feature=value. Indentation=containment. Relations: < > <: >: for ordering.",
+  "summary": "Templates: node_type feature=value. Indentation=containment. Relations: < > <: :> =: for ordering/position.",
   "sections": ["basics", "structure", "relations", "quantifiers", "examples"],
   "hint": "Call with section='relations' to get detailed info on a specific section"
 }
@@ -505,7 +505,7 @@ Get search syntax documentation (section-based).
 ```json
 {
   "section": "relations",
-  "content": "## Relations\n\n### Default Relations\n- Indented items are contained by their parent (`:` relation)\n- Items at same level follow each other in order\n\n### Explicit Relations\n```\nclause\n  word sp=verb\n  < word sp=noun             # noun comes BEFORE verb\n  > word sp=adj              # adjective comes AFTER verb\n  <: word sp=prep            # preposition immediately before verb\n  >: word sp=adv             # adverb immediately after verb\n```\n\n### Relation Operators\n- `<` - comes before\n- `>` - comes after\n- `<:` - immediately before (adjacent)\n- `>:` - immediately after (adjacent)\n- `<<` - comes before (same level)\n- `>>` - comes after (same level)\n- `:` - is contained in\n- `::` - is directly contained in (parent-child)\n- `[[` - starts at same position\n- `]]` - ends at same position\n- `=:` - same slots (co-extensive)\n- `==` - same node"
+  "content": "## Relations\n\n### Default Relations\n- Indented items are contained by their parent (`:` relation)\n- Items at same level follow each other in order\n\n### Explicit Relations\n```\nclause\n  word sp=verb\n  < word sp=noun             # noun comes BEFORE verb\n  > word sp=adj              # adjective comes AFTER verb\n  <: word sp=prep            # preposition immediately before verb\n  :> word sp=adv             # adverb immediately after verb\n```\n\n### Relation Operators\n- `<` - comes before (canonical node ordering)\n- `>` - comes after (canonical node ordering)\n- `<:` - immediately before (adjacent)\n- `:>` - immediately after (adjacent)\n- `<<` - completely before (slot ordering)\n- `>>` - completely after (slot ordering)\n- `[[` - left embeds right\n- `]]` - left embedded in right\n- `=:` - start at same slot\n- `:=` - end at same slot\n- `::` - start and end at same slot (co-extensive)\n- `==` - occupy same slots"
 }
 ```
 

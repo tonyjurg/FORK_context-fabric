@@ -121,22 +121,22 @@ clause
   < word sp=noun             # noun comes BEFORE verb
   > word sp=adj              # adjective comes AFTER verb
   <: word sp=prep            # preposition immediately before verb
-  >: word sp=adv             # adverb immediately after verb
+  :> word sp=adv             # adverb immediately after verb
 ```
 
 ### Relation Operators
-- `<` - comes before
-- `>` - comes after
+- `<` - comes before (canonical node ordering)
+- `>` - comes after (canonical node ordering)
 - `<:` - immediately before (adjacent)
-- `>:` - immediately after (adjacent)
-- `<<` - comes before (same level)
-- `>>` - comes after (same level)
-- `:` - is contained in
-- `::` - is directly contained in (parent-child)
-- `[[` - starts at same position
-- `]]` - ends at same position
-- `=:` - same slots (co-extensive)
-- `==` - same node""",
+- `:>` - immediately after (adjacent)
+- `<<` - completely before (slot ordering)
+- `>>` - completely after (slot ordering)
+- `[[` - left embeds right
+- `]]` - left embedded in right
+- `=:` - start at same slot
+- `:=` - end at same slot
+- `::` - start and end at same slot (co-extensive)
+- `==` - occupy same slots""",
 
     "quantifiers": """## Quantifiers
 ```

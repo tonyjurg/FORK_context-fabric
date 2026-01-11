@@ -5,6 +5,17 @@ All notable changes to cfabric-mcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-01-10
+
+### Fixed
+- Corrected search syntax documentation: `>:` changed to `:>` for "immediately after" relation
+- Fixed incorrect relation operator descriptions in search_syntax_guide:
+  - `=:` now correctly described as "start at same slot" (was "same slots (co-extensive)")
+  - `[[` now correctly described as "left embeds right" (was "starts at same position")
+  - `]]` now correctly described as "left embedded in right" (was "ends at same position")
+  - `::` now correctly described as "start and end at same slot (co-extensive)" (was "directly contained in")
+  - Added missing `:=` operator for "end at same slot"
+
 ## [0.1.1] - 2026-01-10
 
 ### Added
