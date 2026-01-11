@@ -54,8 +54,8 @@ export const mdxNavigation: NavSection[] = [
     type: "manual",
     items: [
       { title: "Corpus Index", path: "/docs/corpora" },
-      { title: "Creating Corpora", path: "/docs/corpora/creating" },
       { title: "Getting Corpora", path: "/docs/corpora/distribution" },
+      { title: "Creating Corpora", path: "/docs/corpora/creating" },
     ],
   },
   {
