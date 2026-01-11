@@ -8,7 +8,7 @@ export function Hero() {
         {/* Content */}
         <div className="max-w-[480px] lg:max-w-none text-center lg:text-left mx-auto lg:mx-0">
           <div className="inline-block text-[0.8125rem] font-medium text-[var(--color-accent)] tracking-wide uppercase mb-6">
-            Corpus Linguistics Infrastructure
+            AI-Native Corpus Infrastructure
           </div>
           <h1 className="text-[2.25rem] md:text-[3.25rem] leading-[1.15] mb-6 tracking-tight">
             From research notebooks to production APIs
