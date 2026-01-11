@@ -34,7 +34,7 @@ export function Features() {
       <div className="max-w-[1000px] mx-auto">
         <div className="mb-16">
           <h2 className="text-[2.25rem] mb-3 tracking-tight">
-            Built for corpus linguistics
+            Built for industrial-scale corpus linguistics
           </h2>
           <p className="text-[1.0625rem] text-[var(--color-text-secondary)]">
             Whether you&apos;re exploring in a notebook or deploying at scale, the same
