@@ -15,7 +15,7 @@ export function Hero() {
           </h1>
           <p className="text-[1.125rem] text-[var(--color-text-secondary)] mb-8 leading-relaxed">
             Memory-efficient storage and querying for annotated text corpora.
-            Compatible with 35+ Text-Fabric datasets. Scales from laptops to AI-powered pipelines.
+            Morphology, syntax, discourse—35+ Text-Fabric datasets. Scales from laptops to AI-powered pipelines.
           </p>
           <div className="flex gap-4 justify-center lg:justify-start">
             <Link

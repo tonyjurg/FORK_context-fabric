@@ -15,13 +15,13 @@ const features = [
     number: "03",
     title: "Graph-Based Model",
     description:
-      "Nodes represent textual elements, edges capture relationships. Navigate from words to clauses to books with elegant traversal APIs.",
+      "Nodes represent textual units—morphemes, words, phrases, clauses. Edges capture syntax, coreference, discourse. Navigate with elegant traversal APIs.",
   },
   {
     number: "04",
     title: "Pattern Search",
     description:
-      "SPIN algorithm finds complex linguistic patterns across massive corpora. Structural templates, feature constraints, instant results.",
+      "SPIN algorithm finds complex linguistic patterns across massive corpora. Query by lemma, part-of-speech, syntactic role—instant results.",
   },
 ];
 

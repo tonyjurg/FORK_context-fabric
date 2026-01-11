@@ -30,6 +30,20 @@ export const metadata: Metadata = {
     title: "Context-Fabric",
     description: "Production-ready corpus analysis for the age of AI",
     type: "website",
+    images: [
+      {
+        url: "/images/og-image.png",
+        width: 512,
+        height: 512,
+        alt: "Context-Fabric logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Context-Fabric",
+    description: "Production-ready corpus analysis for the age of AI",
+    images: ["/images/og-image.png"],
   },
 };
 
