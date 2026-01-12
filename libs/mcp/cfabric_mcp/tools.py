@@ -139,12 +139,48 @@ clause
 - `==` - occupy same slots""",
 
     "quantifiers": """## Quantifiers
+
+Quantifiers filter parent nodes based on what they contain. All blocks end with `/-/`.
+
+### /without/ - Exclusion
+Find nodes that do NOT contain a matching pattern:
+```
+phrase
+/without/
+  word sp=verb
+/-/
+```
+Returns phrases that don't contain any verbs.
+
+### /where/ + /have/ - Required Conditions (AND)
+Find nodes containing ALL specified patterns:
 ```
 clause
-  phrase*                    # Zero or more phrases
-  phrase+                    # One or more phrases
-  phrase?                    # Zero or one phrase
-```""",
+/where/
+  word sp=verb
+/have/
+  word sp=subs
+/-/
+```
+Returns clauses containing both a verb AND a noun.
+
+### /with/ + /or/ - Alternatives (OR)
+Find nodes matching ANY of the alternative patterns:
+```
+phrase
+/with/
+  word sp=verb
+/or/
+  word sp=nmpr
+/-/
+```
+Returns phrases containing a verb OR a proper name.
+
+### Rules
+- Quantifier keywords (`/where/`, `/have/`, etc.) must be on their own line
+- Templates inside quantifiers follow normal search syntax
+- All quantifier blocks must terminate with `/-/`
+""",
 
     "examples": """## Examples
 
@@ -171,6 +207,14 @@ word
 ```
 clause
   word lex=king
+```
+
+### Find clauses without verbs:
+```
+clause
+/without/
+  word sp=verb
+/-/
 ```""",
 }
 
