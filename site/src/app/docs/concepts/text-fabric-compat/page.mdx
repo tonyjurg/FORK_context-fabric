@@ -45,7 +45,11 @@ The MCP (Model Context Protocol) server is unique to Context-Fabric—it has no 
 
 ## API Compatibility
 
-Context-Fabric preserves 100% API compatibility with Text-Fabric. If you know Text-Fabric, you know Context-Fabric.
+Context-Fabric preserves API compatibility with Text-Fabric's core module. If you know Text-Fabric's core APIs, you know Context-Fabric.
+
+<Callout type="note">
+Context-Fabric implements Text-Fabric's `core` module only. Text-Fabric's `advanced` module—which provides automatic corpus downloading, rich display formatting, and the `A = use('corpus')` convenience pattern—is not included. Context-Fabric's MCP server and AI integration are intended to replace these convenience features with a more powerful, natural-language interface.
+</Callout>
 
 ### The Core APIs
 
