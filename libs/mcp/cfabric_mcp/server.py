@@ -8,7 +8,7 @@ Transports:
 - sse (--sse PORT): Server-Sent Events for remote MCP clients (e.g., Cursor)
 - http (--http PORT): Streamable HTTP for production deployments
 
-Tool Set (10 tools):
+Tool Set (11 tools):
 Discovery:
 - list_corpora: List available corpora
 - describe_corpus: Corpus structure (node types, sections)
@@ -18,6 +18,7 @@ Discovery:
 Search:
 - search: Pattern search with return_type (results/count/statistics/passages)
 - search_continue: Paginated search continuation
+- search_csv: Export search results to CSV file (stdio only)
 - search_syntax_guide: Search syntax docs (section-based)
 Data Access:
 - get_passages: Batch section lookup
@@ -268,6 +269,39 @@ def search_continue(
 
 
 @mcp.tool()
+def search_csv(
+    template: str,
+    file_path: str,
+    limit: int = 10000,
+    delimiter: str = ",",
+    corpus: str | None = None,
+) -> dict[str, Any]:
+    """Export search results to a CSV file.
+
+    Use this tool instead of search() when exporting large result sets that
+    would be unwieldy to return inline. Results are written directly to a file
+    rather than returned in the response.
+
+    Note: This tool writes to the local filesystem and requires stdio transport.
+    Not available over HTTP/SSE - use search() with a limit parameter instead.
+
+    Writes delimited values with header row. Multi-node search results
+    are flattened with positional prefixes (node0_*, node1_*, etc.).
+
+    Args:
+        template: Search template (use search_syntax_guide() for syntax help)
+        file_path: Absolute path to write the CSV file
+        limit: Maximum rows to export (default 10000)
+        delimiter: Field separator (default ",", use "\\t" for TSV)
+        corpus: Corpus name (defaults to current corpus)
+
+    Returns:
+        File path, total matches found, and rows written.
+    """
+    return tools.search_csv(template, file_path, limit, delimiter, corpus)
+
+
+@mcp.tool()
 def search_syntax_guide(section: str | None = None) -> dict[str, Any]:
     """Get documentation on search template syntax.
 
@@ -462,6 +496,9 @@ Examples:
         port = None
 
     logger.info("Starting Context-Fabric MCP Server (transport: %s)", transport)
+
+    # Set transport for tools that need it (e.g., search_csv)
+    tools.set_transport(transport)
 
     # Pre-load corpora before starting server
     logger.info("Loading %d corpus/corpora...", len(args.corpus))

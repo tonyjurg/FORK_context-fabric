@@ -1,12 +1,16 @@
 """Integration tests for search tools.
 
-Tests search(), search_syntax_guide() with a real corpus.
+Tests search(), search_continue(), search_csv(), search_syntax_guide() with a real corpus.
 
 Note: Search results return node info dictionaries in the format:
     [{'node': 1, 'otype': 'word', 'text': 'hello', ...}, ...]
 For multi-atom queries, results are lists of dicts:
     [[{phrase_info}, {word_info}], ...]
 """
+
+import csv
+import os
+import tempfile
 
 import pytest
 
@@ -174,4 +178,173 @@ class TestSearchSyntaxGuide:
         assert result["section"] == "relations"
         assert len(result["content"]) > 0
 
+
+class TestSearchCsv:
+    """Integration tests for CSV export functionality."""
+
+    def test_exports_single_node_results(self, loaded_corpus):
+        """Should export single-node search results to CSV."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            file_path = f.name
+
+        try:
+            result = tools.search_csv(
+                template="word",
+                file_path=file_path,
+                corpus=loaded_corpus,
+            )
+
+            assert "error" not in result
+            assert result["file_path"] == file_path
+            assert result["total_count"] == 5  # 5 words in mini_corpus
+            assert result["rows_written"] == 5
+
+            # Verify file contents
+            with open(file_path, newline="") as f:
+                reader = csv.reader(f)
+                rows = list(reader)
+
+            # Header + 5 data rows
+            assert len(rows) == 6
+
+            # Check header columns
+            header = rows[0]
+            assert "node0_node" in header
+            assert "node0_otype" in header
+            assert "node0_text" in header
+            assert "node0_section_ref" in header
+
+            # Check data row
+            data_row = rows[1]
+            assert len(data_row) == 4  # 4 columns for single node
+
+        finally:
+            os.unlink(file_path)
+
+    def test_exports_multi_node_results(self, loaded_corpus):
+        """Should export multi-node search results with flattened columns."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            file_path = f.name
+
+        try:
+            # Search for phrase containing word
+            result = tools.search_csv(
+                template="phrase\n  word",
+                file_path=file_path,
+                corpus=loaded_corpus,
+            )
+
+            assert "error" not in result
+            assert result["rows_written"] > 0
+
+            # Verify file contents
+            with open(file_path, newline="") as f:
+                reader = csv.reader(f)
+                rows = list(reader)
+
+            # Check header has columns for both nodes
+            header = rows[0]
+            assert "node0_node" in header
+            assert "node0_otype" in header
+            assert "node1_node" in header
+            assert "node1_otype" in header
+
+            # Should have 8 columns (4 per node)
+            assert len(header) == 8
+
+        finally:
+            os.unlink(file_path)
+
+    def test_respects_limit(self, loaded_corpus):
+        """Should respect the limit parameter."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            file_path = f.name
+
+        try:
+            result = tools.search_csv(
+                template="word",
+                file_path=file_path,
+                limit=2,
+                corpus=loaded_corpus,
+            )
+
+            assert result["total_count"] == 5  # Total matches
+            assert result["rows_written"] == 2  # Limited to 2
+
+            with open(file_path, newline="") as f:
+                reader = csv.reader(f)
+                rows = list(reader)
+
+            # Header + 2 data rows
+            assert len(rows) == 3
+
+        finally:
+            os.unlink(file_path)
+
+    def test_custom_delimiter(self, loaded_corpus):
+        """Should support custom delimiter (TSV)."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
+            file_path = f.name
+
+        try:
+            result = tools.search_csv(
+                template="word",
+                file_path=file_path,
+                delimiter="\t",
+                limit=2,
+                corpus=loaded_corpus,
+            )
+
+            assert "error" not in result
+
+            # Verify tab-separated
+            with open(file_path, newline="") as f:
+                reader = csv.reader(f, delimiter="\t")
+                rows = list(reader)
+
+            assert len(rows) == 3  # Header + 2 rows
+            assert len(rows[0]) == 4  # 4 columns
+
+        finally:
+            os.unlink(file_path)
+
+    def test_empty_results(self, loaded_corpus):
+        """Should handle empty search results gracefully."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            file_path = f.name
+
+        try:
+            # Search for something that doesn't exist
+            result = tools.search_csv(
+                template="word pos=nonexistent",
+                file_path=file_path,
+                corpus=loaded_corpus,
+            )
+
+            assert result["total_count"] == 0
+            assert result["rows_written"] == 0
+
+            # File should exist but be empty
+            assert os.path.exists(file_path)
+
+        finally:
+            os.unlink(file_path)
+
+    def test_invalid_template_returns_error(self, loaded_corpus):
+        """Should return error for invalid search template."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            file_path = f.name
+
+        try:
+            result = tools.search_csv(
+                template="invalid { syntax",
+                file_path=file_path,
+                corpus=loaded_corpus,
+            )
+
+            assert "error" in result
+
+        finally:
+            if os.path.exists(file_path):
+                os.unlink(file_path)
 

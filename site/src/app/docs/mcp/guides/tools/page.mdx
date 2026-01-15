@@ -260,6 +260,49 @@ Page through results using the cursor from a previous search:
 Cursors expire after 5 minutes. For long-running analysis, complete pagination promptly or re-run the search.
 </Callout>
 
+### search_csv
+
+Export search results directly to a CSV file. Use this for large result sets that would be unwieldy to return inline.
+
+```json
+// Request
+{
+  "tool": "search_csv",
+  "template": "phrase\n  word",
+  "file_path": "/tmp/results.csv",
+  "limit": 1000
+}
+
+// Response
+{
+  "file_path": "/tmp/results.csv",
+  "total_count": 253203,
+  "rows_written": 1000
+}
+```
+
+The CSV output flattens multi-node results with positional prefixes:
+
+```csv
+node0_node,node0_otype,node0_text,node0_section_ref,node1_node,node1_otype,node1_text,node1_section_ref
+651573,phrase,בְּרֵאשִׁית,Genesis 1:1,1,word,בְּ,Genesis 1:1
+651573,phrase,בְּרֵאשִׁית,Genesis 1:1,2,word,רֵאשִׁ֖ית,Genesis 1:1
+```
+
+#### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `template` | required | Search template (same syntax as `search`) |
+| `file_path` | required | Absolute path to write the CSV file |
+| `limit` | 10000 | Maximum rows to export |
+| `delimiter` | `,` | Field separator (use `\t` for TSV) |
+| `corpus` | current | Corpus name |
+
+<Callout type="warning">
+This tool writes to the local filesystem and only works with stdio transport. When using HTTP or SSE transport, use `search` with pagination instead.
+</Callout>
+
 ### search_syntax_guide
 
 Get documentation on search template syntax. Call without arguments for an overview, or with a section name for details.

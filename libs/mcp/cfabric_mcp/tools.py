@@ -33,6 +33,15 @@ _text_formats_cache: dict[str, dict[str, Any]] = {}
 MAX_SEARCH_LIMIT = 100  # Max results per page for search
 MAX_PASSAGES_LIMIT = 100  # Max sections per get_passages call
 
+# Transport mode - set by server at startup
+_transport: str = "stdio"
+
+
+def set_transport(transport: str) -> None:
+    """Set the transport mode (called by server at startup)."""
+    global _transport
+    _transport = transport
+
 
 # ============================================================================
 # Corpus Management Tools
@@ -549,6 +558,112 @@ def search_continue(
             "has_more": has_more,
             "expires_at": cached.expires_at,
         },
+    }
+
+
+def search_csv(
+    template: str,
+    file_path: str,
+    limit: int = 10000,
+    delimiter: str = ",",
+    corpus: str | None = None,
+) -> dict[str, Any]:
+    """Export search results to a CSV file.
+
+    Args:
+        template: Search template (same syntax as search())
+        file_path: Absolute path to write CSV file
+        limit: Max rows to export (default 10000)
+        delimiter: Field separator (default ",", use "\\t" for TSV)
+        corpus: Corpus name (defaults to current)
+
+    Returns:
+        Dictionary with file_path, total_count, and rows_written.
+    """
+    import csv
+
+    # Check transport - file writes only work with stdio
+    if _transport != "stdio":
+        return {
+            "error": "This tool writes files to the server's local filesystem and is not "
+            "available over HTTP/SSE transport. Use search() with a limit parameter instead."
+        }
+
+    template_preview = template.strip().replace("\n", " ")[:80]
+    logger.info("search_csv: exporting to %s (limit=%d): %s...", file_path, limit, template_preview)
+
+    corpus_name = corpus or corpus_manager.current or ""
+    api = corpus_manager.get_api(corpus)
+    S = api.S
+
+    # Validate template
+    try:
+        S.study(template)
+    except Exception as e:
+        logger.error("search_csv: template study failed: %s", e)
+        return {"error": f"Invalid search template: {e}", "template": template}
+
+    exe = S.exe
+    if exe and not exe.good:
+        errors = []
+        for ln, msg in getattr(exe, "badSyntax", []):
+            errors.append(f"Line {ln}: {msg}" if ln is not None else msg)
+        for ln, msg in getattr(exe, "badSemantics", []):
+            errors.append(f"Line {ln}: {msg}" if ln is not None else msg)
+        return {"error": "Invalid search template", "errors": errors, "template": template}
+
+    # Execute search (uses cache)
+    cache = get_cache()
+
+    def execute_search() -> list[tuple[int, ...]]:
+        try:
+            results = S.search(template)
+            if results is None:
+                return []
+            if isinstance(results, tuple):
+                return list(results)
+            return list(results)
+        except Exception as e:
+            logger.error("search_csv: execution failed: %s", e)
+            return []
+
+    cached = cache.get_or_execute(corpus_name, template, execute_search)
+    results = cached.results
+    total_count = len(results)
+
+    if total_count == 0:
+        # Write empty file
+        with open(file_path, "w", newline="") as f:
+            pass
+        return {"file_path": file_path, "total_count": 0, "rows_written": 0}
+
+    # Determine columns from first result
+    num_nodes = len(results[0])
+    base_fields = ["node", "otype", "text", "section_ref"]
+    header = []
+    for i in range(num_nodes):
+        for field in base_fields:
+            header.append(f"node{i}_{field}")
+
+    # Write CSV
+    rows_written = 0
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f, delimiter=delimiter)
+        writer.writerow(header)
+
+        for tup in results[:limit]:
+            row = []
+            for node in tup:
+                info = NodeInfo.from_api(api, node)
+                row.extend([info.node, info.otype, info.text, info.section_ref])
+            writer.writerow(row)
+            rows_written += 1
+
+    logger.info("search_csv: wrote %d rows to %s", rows_written, file_path)
+    return {
+        "file_path": file_path,
+        "total_count": total_count,
+        "rows_written": rows_written,
     }
 
 

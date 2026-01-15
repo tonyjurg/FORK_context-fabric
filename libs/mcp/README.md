@@ -45,7 +45,7 @@ cfabric-mcp --corpus /path/to/bhsa --http 8000
 
 ## Tools
 
-The server exposes 10 MCP tools organized in layers for efficient discovery.
+The server exposes 11 MCP tools organized in layers for efficient discovery.
 
 > **Note:** A usage guide is automatically provided to clients via the MCP `instructions` field at connection time.
 
@@ -65,6 +65,7 @@ The server exposes 10 MCP tools organized in layers for efficient discovery.
 |------|-------------|
 | `search` | Pattern search (results/count/statistics/passages) |
 | `search_continue` | Paginate search results |
+| `search_csv` | Export results to CSV file (stdio only) |
 | `search_syntax_guide` | Search syntax docs (section-based) |
 
 ### Data Access Tools
